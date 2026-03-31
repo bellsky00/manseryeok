@@ -1,0 +1,2655 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>만세력 계산기</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      letter-spacing: .2em;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #c9a96e, #f0d080);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle { color: #888; margin-bottom: 32px; font-size: .9rem; }
+
+    /* 입력 폼 */
+    .card {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 16px;
+      padding: 28px 32px;
+      width: 100%;
+      max-width: 540px;
+      margin-bottom: 28px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: .78rem;
+      color: #c9a96e;
+      margin-bottom: 4px;
+      letter-spacing: .05em;
+    }
+    input[type=number] {
+      width: 100%;
+      padding: 10px 12px;
+      background: #0f1e3d;
+      border: 1px solid #2a3560;
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input[type=number]:focus { border-color: #c9a96e; }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #c9a96e, #e8b84b);
+      border: none;
+      border-radius: 10px;
+      color: #1a1a2e;
+      font-size: 1.05rem;
+      font-weight: bold;
+      cursor: pointer;
+      letter-spacing: .1em;
+      transition: opacity .2s;
+    }
+    button:hover { opacity: .88; }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-row button { flex: 1; white-space: nowrap; }
+    .btn-row .download-btn {
+      background: linear-gradient(135deg, #2a3560, #1a2545);
+      border: 1px solid #c9a96e;
+      color: #c9a96e;
+      font-size: .85rem;
+      white-space: nowrap;
+    }
+    .btn-row .download-btn:hover {
+      background: linear-gradient(135deg, #3a4570, #2a3555);
+      color: #f0d080;
+      border-color: #f0d080;
+    }
+
+    /* 진태양시 보정 */
+    .solar-time-row {
+      margin-bottom: 18px;
+      padding: 12px 14px;
+      background: #0f1e3d;
+      border-radius: 10px;
+    }
+    .check-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .85rem;
+      cursor: pointer;
+      margin-bottom: 0;
+      color: #e0e0e0;
+    }
+    .check-label input[type=checkbox] {
+      accent-color: #c9a96e;
+      width: 16px;
+      height: 16px;
+    }
+    .city-wrap {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .city-wrap label { margin-bottom: 0; }
+    select {
+      padding: 8px 10px;
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-size: .9rem;
+      outline: none;
+    }
+    select:focus { border-color: #c9a96e; }
+    #customLon {
+      width: 110px;
+      padding: 8px 10px;
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-size: .9rem;
+    }
+
+    /* 진태양시 정보 박스 */
+    .solar-info {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      font-size: .82rem;
+      line-height: 1.7;
+    }
+    .solar-info h3 {
+      font-size: .85rem;
+      color: #888;
+      margin-bottom: 10px;
+      letter-spacing: .1em;
+    }
+    .solar-info .row { display: flex; justify-content: space-between; }
+    .solar-info .label { color: #888; }
+    .solar-info .value { color: #c9a96e; font-weight: bold; }
+    .solar-info .highlight { color: #f0d080; font-size: .95rem; }
+
+    /* 결과 */
+    #result { width: 100%; max-width: 640px; display: none; }
+
+    .result-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .result-header .birth { color: #aaa; font-size: .9rem; }
+    .result-header .ddi {
+      font-size: 1.1rem;
+      color: #c9a96e;
+      margin-top: 4px;
+    }
+
+    /* 사주 기둥 */
+    .pillars {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .pillar {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 18px 10px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+    }
+    .pillar .pillar-name {
+      font-size: .72rem;
+      color: #888;
+      letter-spacing: .1em;
+      margin-bottom: 10px;
+    }
+    .pillar .pillar-bottom {
+      margin-top: auto;
+      padding-top: 8px;
+    }
+    .pillar .hanja {
+      font-size: 2.2rem;
+      line-height: 1;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+    .pillar .hangul {
+      font-size: .9rem;
+      color: #c9a96e;
+      margin-bottom: 10px;
+    }
+    .pillar .stem-row,
+    .pillar .branch-row {
+      font-size: .78rem;
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+    .tag {
+      padding: 1px 7px;
+      border-radius: 20px;
+      font-size: .72rem;
+    }
+    .tag-wood   { background: #1b4d1b; color: #6fcf6f; }
+    .tag-fire   { background: #4d1b1b; color: #f07070; }
+    .tag-earth  { background: #4d3c1b; color: #d4a84b; }
+    .tag-metal  { background: #2a2a3d; color: #a0a0d0; }
+    .tag-water  { background: #1b2a4d; color: #70a0f0; }
+
+    /* 연도별 오행 분포 */
+    .elements-bar {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+    .elements-bar h3 {
+      font-size: .85rem;
+      color: #888;
+      margin-bottom: 12px;
+      letter-spacing: .1em;
+    }
+    .elem-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 10px;
+    }
+    .elem-label { width: 40px; font-size: .85rem; }
+    .elem-bar-wrap { flex: 1; background: #0f1e3d; border-radius: 4px; height: 14px; }
+    .elem-bar { height: 100%; border-radius: 4px; transition: width .5s; }
+    .elem-count { width: 20px; text-align: right; font-size: .82rem; color: #aaa; }
+
+    /* 절기 표 */
+    .terms-card {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 18px 20px;
+    }
+    .terms-card h3 {
+      font-size: .85rem;
+      color: #888;
+      margin-bottom: 14px;
+      letter-spacing: .1em;
+    }
+    .terms-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .term-item {
+      background: #0f1e3d;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: .78rem;
+    }
+    .term-item .term-name { color: #c9a96e; font-weight: bold; }
+    .term-item .term-date { color: #aaa; margin-top: 2px; }
+    .term-item.active { border: 1px solid #c9a96e; }
+
+    /* 십성 라벨 */
+    .ten-god {
+      font-size: .72rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      display: inline-block;
+      margin: 2px 0;
+      font-weight: bold;
+    }
+    .god-비견, .god-겁재 { background: #1b2a4d; color: #70a0f0; }
+    .god-식신, .god-상관 { background: #1b3d1b; color: #6fcf6f; }
+    .god-편재, .god-정재 { background: #3d3010; color: #d4a84b; }
+    .god-편관, .god-정관 { background: #3d1515; color: #f07070; }
+    .god-편인, .god-정인 { background: #2d1d3d; color: #c090e0; }
+    .god-일원 { background: transparent; color: #666; }
+
+    .pillar .divider {
+      width: 60%;
+      margin: 6px auto;
+      border-top: 1px solid #2a3560;
+    }
+    .pillar .gm-mark {
+      display: inline-block;
+      font-size: .58rem;
+      color: #f08080;
+      background: #3a1a1a;
+      border: 1px solid #6a2a2a;
+      border-radius: 4px;
+      padding: 1px 5px;
+      margin-top: 4px;
+      letter-spacing: .05em;
+    }
+    .gongmang-summary {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 14px 20px;
+      margin-bottom: 24px;
+      font-size: .82rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .gongmang-summary .gm-label {
+      color: #888;
+      font-size: .78rem;
+    }
+    .gongmang-summary .gm-chars {
+      font-weight: bold;
+      color: #f08080;
+      font-size: .95rem;
+    }
+    .gongmang-summary .gm-affected {
+      color: #c9a96e;
+      font-size: .78rem;
+    }
+    .gongmang-summary .gm-none {
+      color: #666;
+      font-size: .78rem;
+    }
+
+    .pillar .jijanggan {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed #2a3560;
+    }
+    .pillar .jijanggan .jj-title {
+      font-size: .6rem;
+      color: #666;
+      margin-bottom: 4px;
+      letter-spacing: .05em;
+    }
+    .pillar .jijanggan .jj-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 4px;
+      font-size: .68rem;
+      margin-bottom: 2px;
+      line-height: 1.4;
+    }
+    .pillar .jijanggan .jj-label {
+      color: #555;
+      font-size: .58rem;
+      width: 24px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .pillar .jijanggan .jj-stem {
+      font-weight: bold;
+    }
+    .pillar .jijanggan .jj-god {
+      font-size: .6rem;
+      opacity: .8;
+    }
+
+    /* 신살 테이블 */
+    .shinsal-card {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+    .shinsal-card h3 {
+      font-size: .85rem;
+      color: #888;
+      margin-bottom: 14px;
+      letter-spacing: .1em;
+    }
+    .shinsal-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .8rem;
+    }
+    .shinsal-table th {
+      color: #888;
+      font-weight: normal;
+      padding: 6px 4px;
+      border-bottom: 1px solid #2a3560;
+      font-size: .72rem;
+      letter-spacing: .05em;
+    }
+    .shinsal-table td {
+      padding: 7px 4px;
+      text-align: center;
+      border-bottom: 1px solid #1a2545;
+    }
+    .shinsal-table td:first-child {
+      text-align: left;
+      padding-left: 8px;
+      font-weight: bold;
+    }
+    .shinsal-table tr:last-child td { border-bottom: none; }
+    .ss-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      display: inline-block;
+    }
+    .ss-good  { color: #7ae07a; }
+    .ss-good .ss-dot  { background: #5cbf5c; }
+    .ss-bad   { color: #f08080; }
+    .ss-bad .ss-dot   { background: #d06060; }
+    .ss-neutral { color: #90b0e0; }
+    .ss-neutral .ss-dot { background: #6090c0; }
+    .shinsal-table .ss-mark {
+      font-size: .85rem;
+      font-weight: bold;
+    }
+
+    /* 십성 분포 */
+    .sipsung-summary {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+    .sipsung-summary h3 {
+      font-size: .85rem;
+      color: #888;
+      margin-bottom: 14px;
+      letter-spacing: .1em;
+    }
+    .sipsung-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+    .sipsung-item {
+      text-align: center;
+      padding: 8px 4px;
+      border-radius: 8px;
+      background: #0f1e3d;
+    }
+    .sipsung-item .name { font-size: .78rem; margin-bottom: 2px; }
+    .sipsung-item .cnt  { font-size: 1.1rem; font-weight: bold; }
+
+    /* 성별 */
+    .gender-row { display: flex; gap: 16px; margin-top: 4px; }
+    .radio-label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: .9rem; color: #e0e0e0; cursor: pointer;
+    }
+    .radio-label input { accent-color: #c9a96e; }
+
+    /* 대운/연운/월운 */
+    .fortune-card {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+    .fortune-card h3 {
+      font-size: .85rem;
+      color: #888;
+      margin-bottom: 14px;
+      letter-spacing: .1em;
+    }
+    .fortune-header {
+      font-size: .82rem;
+      color: #c9a96e;
+      margin-bottom: 12px;
+    }
+    .daeun-scroll {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+    }
+    .daeun-item {
+      background: #0f1e3d;
+      border: 1px solid #2a3560;
+      border-radius: 10px;
+      padding: 10px 6px;
+      text-align: center;
+    }
+    .daeun-item.active {
+      border-color: #c9a96e;
+      background: #1a2a4d;
+    }
+    .daeun-item .age { font-size: .65rem; color: #888; }
+    .daeun-item .hanja { font-size: 1.2rem; font-weight: bold; margin: 4px 0; }
+    .daeun-item .hangul { font-size: .7rem; color: #aaa; }
+    .daeun-item .years { font-size: .6rem; color: #666; margin-top: 2px; }
+
+    .yeoun-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+    .yeoun-item {
+      background: #0f1e3d;
+      border: 1px solid #1a2545;
+      border-radius: 8px;
+      padding: 8px 4px;
+      text-align: center;
+    }
+    .yeoun-item.active {
+      border-color: #c9a96e;
+      background: #1a2a4d;
+    }
+    .yeoun-item .yr { font-size: .65rem; color: #888; }
+    .yeoun-item .hanja { font-size: 1rem; font-weight: bold; }
+    .yeoun-item .hangul { font-size: .65rem; color: #aaa; }
+    .yeoun-item .age-label { font-size: .6rem; color: #666; }
+
+    .wolun-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+    }
+    .wolun-item {
+      background: #0f1e3d;
+      border: 1px solid #1a2545;
+      border-radius: 8px;
+      padding: 8px 4px;
+      text-align: center;
+    }
+    .wolun-item.active {
+      border-color: #c9a96e;
+      background: #1a2a4d;
+    }
+    .wolun-item .mo { font-size: .65rem; color: #888; }
+    .wolun-item .hanja { font-size: 1rem; font-weight: bold; }
+    .wolun-item .hangul { font-size: .65rem; color: #aaa; }
+
+    /* 신강/신약 */
+    .singang-card {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+    .singang-card h3 {
+      font-size: .85rem;
+      color: #888;
+      margin-bottom: 14px;
+      letter-spacing: .1em;
+    }
+    .sg-result {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .sg-result .sg-badge {
+      display: inline-block;
+      font-size: 1.3rem;
+      font-weight: bold;
+      padding: 8px 24px;
+      border-radius: 10px;
+      letter-spacing: .1em;
+    }
+    .sg-badge.singang { background: #1a3a2a; border: 1px solid #2a6a3a; color: #7ae0a0; }
+    .sg-badge.sinyak  { background: #3a1a1a; border: 1px solid #6a2a2a; color: #f08080; }
+    .sg-badge.junghwa { background: #2a2a1a; border: 1px solid #5a5a2a; color: #c9a96e; }
+
+    .sg-bar-section { margin: 14px 0; }
+    .sg-bar-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: .75rem;
+      margin-bottom: 4px;
+    }
+    .sg-bar-labels .help { color: #7ae0a0; }
+    .sg-bar-labels .drain { color: #f08080; }
+    .sg-bar-track {
+      height: 14px;
+      background: #0f1e3d;
+      border-radius: 7px;
+      overflow: hidden;
+      display: flex;
+    }
+    .sg-bar-help {
+      background: linear-gradient(90deg, #2a6a3a, #4a9a5a);
+      height: 100%;
+      transition: width .5s;
+    }
+    .sg-bar-drain {
+      background: linear-gradient(90deg, #8a3a3a, #6a2a2a);
+      height: 100%;
+      transition: width .5s;
+    }
+
+    .sg-3check {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 14px 0;
+    }
+    .sg-check-item {
+      background: #0f1e3d;
+      border-radius: 8px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .sg-check-item .label { font-size: .72rem; color: #888; margin-bottom: 4px; }
+    .sg-check-item .value { font-size: 1rem; font-weight: bold; }
+    .sg-check-item .value.yes { color: #7ae0a0; }
+    .sg-check-item .value.no  { color: #666; }
+    .sg-check-item .sub { font-size: .65rem; color: #666; margin-top: 2px; }
+
+    .sg-detail-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .75rem;
+      margin-top: 12px;
+    }
+    .sg-detail-table th {
+      color: #888;
+      font-weight: normal;
+      padding: 5px 4px;
+      border-bottom: 1px solid #2a3560;
+      text-align: center;
+    }
+    .sg-detail-table td {
+      padding: 5px 4px;
+      text-align: center;
+      border-bottom: 1px solid #1a2545;
+    }
+    .sg-detail-table .help-cell { color: #7ae0a0; }
+    .sg-detail-table .drain-cell { color: #f08080; }
+
+    .sg-yongsin {
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #0f1e3d;
+      border-radius: 8px;
+      font-size: .8rem;
+      line-height: 1.6;
+    }
+    .sg-yongsin .title { color: #c9a96e; font-weight: bold; margin-bottom: 4px; }
+
+    /* 다운로드 버튼 */
+    .download-btn {
+      background: linear-gradient(135deg, #2a3560, #1a2545);
+      border: 1px solid #c9a96e;
+      color: #c9a96e;
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-size: .9rem;
+      cursor: pointer;
+      transition: all .2s;
+      font-weight: 600;
+    }
+    .download-btn:hover {
+      background: linear-gradient(135deg, #3a4570, #2a3555);
+      color: #f0d080;
+      border-color: #f0d080;
+    }
+
+    /* 12운성 */
+    .unsung-card {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+    .unsung-card h3 {
+      font-size: .85rem;
+      color: #888;
+      margin-bottom: 14px;
+      letter-spacing: .1em;
+    }
+    .unsung-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .unsung-item {
+      background: #0f1e3d;
+      border: 1px solid #2a3560;
+      border-radius: 10px;
+      padding: 10px 6px;
+      text-align: center;
+    }
+    .unsung-item .pillar-label { font-size: .65rem; color: #888; margin-bottom: 4px; }
+    .unsung-item .branch-char { font-size: .9rem; margin-bottom: 2px; }
+    .unsung-item .unsung-name { font-size: 1rem; font-weight: bold; margin: 4px 0; }
+    .unsung-item .unsung-name.strong { color: #7ae0a0; }
+    .unsung-item .unsung-name.weak { color: #f08080; }
+    .unsung-item .unsung-name.neutral { color: #c9a96e; }
+    .unsung-desc {
+      font-size: .7rem;
+      color: #555;
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+    .unsung-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .unsung-bar-label { font-size: .72rem; color: #888; white-space: nowrap; }
+    .unsung-bar-track {
+      flex: 1;
+      height: 6px;
+      background: #0f1e3d;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .unsung-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width .3s;
+    }
+
+    /* 형충회합 */
+    .hchh-card {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+    .hchh-card h3 {
+      font-size: .85rem;
+      color: #888;
+      margin-bottom: 14px;
+      letter-spacing: .1em;
+    }
+    .hchh-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .hchh-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: .82rem;
+      font-weight: 600;
+    }
+    .hchh-tag .chars {
+      font-size: .75rem;
+      opacity: .8;
+      font-weight: 400;
+    }
+    .hchh-합 { background: #1a3a2a; border: 1px solid #2a6a3a; color: #7ae0a0; }
+    .hchh-충 { background: #3a1a1a; border: 1px solid #6a2a2a; color: #f08080; }
+    .hchh-형 { background: #3a2a1a; border: 1px solid #6a4a2a; color: #f0c070; }
+    .hchh-해 { background: #2a1a3a; border: 1px solid #4a2a6a; color: #c090f0; }
+    .hchh-파 { background: #3a3a1a; border: 1px solid #5a5a2a; color: #d0d070; }
+    .hchh-원진 { background: #2a2a2a; border: 1px solid #4a4a4a; color: #c0a0a0; }
+    .hchh-section { margin-bottom: 12px; }
+    .hchh-section-title {
+      font-size: .72rem;
+      color: #666;
+      margin-bottom: 6px;
+      letter-spacing: .05em;
+    }
+    .hchh-none {
+      font-size: .8rem;
+      color: #555;
+      padding: 12px 0;
+    }
+
+    @media (max-width: 500px) {
+      .pillars { grid-template-columns: repeat(2, 1fr); }
+      .terms-grid { grid-template-columns: repeat(2, 1fr); }
+      .form-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>萬歲曆</h1>
+<p class="subtitle">생년월일시를 입력하면 사주팔자를 계산합니다</p>
+
+<div class="card">
+  <div class="form-grid">
+    <div>
+      <label>연도</label>
+      <input type="number" id="year"   value="1986" min="1800" max="2100">
+    </div>
+    <div>
+      <label>월 (1~12)</label>
+      <input type="number" id="month"  value="12" min="1" max="12">
+    </div>
+    <div>
+      <label>일 (1~31)</label>
+      <input type="number" id="day"    value="26" min="1" max="31">
+    </div>
+  </div>
+  <div class="form-grid-2">
+    <div>
+      <label>시 (0~23)</label>
+      <input type="number" id="hour"   value="19" min="0" max="23">
+    </div>
+    <div>
+      <label>분 (0~59)</label>
+      <input type="number" id="minute" value="2" min="0" max="59">
+    </div>
+  </div>
+  <div class="form-grid-2" style="margin-bottom:12px">
+    <div>
+      <label>성별</label>
+      <div class="gender-row">
+        <label class="radio-label"><input type="radio" name="gender" value="남" checked> 남</label>
+        <label class="radio-label"><input type="radio" name="gender" value="여"> 여</label>
+      </div>
+    </div>
+  </div>
+  <div class="solar-time-row">
+    <label class="check-label">
+      <input type="checkbox" id="useSolarTime" checked>
+      <span>진태양시 보정 적용</span>
+    </label>
+    <div class="city-wrap" id="cityWrap">
+      <label>출생지</label>
+      <select id="city">
+        <option value="126.97">서울</option>
+        <option value="126.70">인천</option>
+        <option value="127.00">수원/세종</option>
+        <option value="127.38">대전</option>
+        <option value="126.85">광주</option>
+        <option value="128.60">대구</option>
+        <option value="129.03">부산</option>
+        <option value="129.31">울산</option>
+        <option value="126.53">제주</option>
+        <option value="custom">직접입력</option>
+      </select>
+      <input type="number" id="customLon" style="display:none" placeholder="경도 (예: 127.0)" step="0.01" min="124" max="132">
+    </div>
+  </div>
+  <div class="btn-row">
+    <button onclick="calculate()">사주 보기</button>
+    <button class="download-btn" id="downloadMdBtn" onclick="downloadMD()" style="display:none">사주 데이터 받기</button>
+  </div>
+</div>
+
+<div id="result">
+  <div class="result-header">
+    <div class="birth" id="r-birth"></div>
+    <div class="ddi"   id="r-ddi"></div>
+  </div>
+  <div class="solar-info" id="r-solar" style="display:none"></div>
+  <div class="pillars" id="r-pillars"></div>
+  <div class="gongmang-summary" id="r-gongmang" style="display:none"></div>
+  <div class="sipsung-summary" id="r-sipsung" style="display:none"></div>
+  <div class="shinsal-card" id="r-shinsal" style="display:none"></div>
+  <div class="hchh-card" id="r-hchh" style="display:none"></div>
+  <div class="unsung-card" id="r-unsung" style="display:none"></div>
+  <div class="elements-bar">
+    <h3>오행 분포 (8자 기준)</h3>
+    <div id="r-elements"></div>
+  </div>
+  <div class="singang-card" id="r-singang" style="display:none"></div>
+  <div class="fortune-card" id="r-daeun" style="display:none"></div>
+  <div class="fortune-card" id="r-yeoun" style="display:none"></div>
+  <div class="fortune-card" id="r-wolun" style="display:none"></div>
+  <div class="terms-card">
+    <h3 id="r-terms-title">절기</h3>
+    <div class="terms-grid" id="r-terms"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  기본 데이터
+// ══════════════════════════════════════════════════════
+const 천간      = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const 천간_한글  = ['갑','을','병','정','무','기','경','신','임','계'];
+const 지지      = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const 지지_한글  = ['자','축','인','묘','진','사','오','미','신','유','술','해'];
+const 천간_오행  = ['木','木','火','火','土','土','金','金','水','水'];
+const 지지_오행  = ['水','土','木','木','土','火','火','土','金','金','土','水'];
+const 음양      = ['양','음','양','음','양','음','양','음','양','음'];
+const 띠_이름   = ['쥐','소','호랑이','토끼','용','뱀','말','양','원숭이','닭','개','돼지'];
+const 절기_이름  = ['입춘','경칩','청명','입하','망종','소서','입추','백로','한로','입동','대설','소한'];
+
+const SOLAR_TERMS = [
+  [315,  2,  4,  2],
+  [345,  3,  6,  3],
+  [ 15,  4,  5,  4],
+  [ 45,  5,  6,  5],
+  [ 75,  6,  6,  6],
+  [105,  7,  7,  7],
+  [135,  8,  7,  8],
+  [165,  9,  8,  9],
+  [195, 10,  8, 10],
+  [225, 11,  7, 11],
+  [255, 12,  7,  0],
+  [285,  1,  6,  1],
+];
+
+// ══════════════════════════════════════════════════════
+//  진태양시 보정 (True Solar Time)
+// ══════════════════════════════════════════════════════
+const KST_MERIDIAN = 135.0;  // 한국표준시 기준 경도 (동경 135°)
+
+function equationOfTime(year, month, day) {
+  // 균시차 (Equation of Time) - 분 단위로 반환
+  // 지구 공전궤도 이심률 + 자전축 기울기로 인한 태양시 보정
+  const doy = dayOfYear(year, month, day);
+  const B = (360 / 365.24) * (doy - 81) * Math.PI / 180;
+  // Spencer 공식 (분 단위)
+  const EoT = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+  return EoT;
+}
+
+function dayOfYear(year, month, day) {
+  const d = new Date(year, month - 1, day);
+  const start = new Date(year, 0, 0);
+  return Math.floor((d - start) / 86400000);
+}
+
+function calcTrueSolarTime(year, month, day, hour, minute, longitude) {
+  // 1. 경도 보정: (기준경도 - 출생지경도) × 4분/도
+  const lonCorrection = (KST_MERIDIAN - longitude) * 4;  // 분 단위
+
+  // 2. 균시차
+  const eot = equationOfTime(year, month, day);
+
+  // 총 보정값 (분): 표준시에서 빼야 할 시간
+  // 진태양시 = 표준시 - 경도보정 + 균시차
+  const totalCorrection = -lonCorrection + eot;
+
+  // 보정된 시각
+  const totalMinutes = hour * 60 + minute + totalCorrection;
+  const correctedHour = Math.floor(totalMinutes / 60) % 24;
+  const correctedMinute = Math.round(totalMinutes % 60);
+
+  return {
+    lonCorrection: -lonCorrection,    // 경도 보정 (분)
+    eot,                              // 균시차 (분)
+    totalCorrection,                  // 총 보정 (분)
+    correctedHour: correctedHour < 0 ? correctedHour + 24 : correctedHour,
+    correctedMinute: correctedMinute < 0 ? correctedMinute + 60 : correctedMinute,
+    totalMinutes,
+  };
+}
+
+// ══════════════════════════════════════════════════════
+//  태양황경 계산 (Jean Meeus)
+// ══════════════════════════════════════════════════════
+function solarLongitude(year, month, day, hour = 12) {
+  if (month <= 2) { year -= 1; month += 12; }
+  const A = Math.floor(year / 100);
+  const B = 2 - A + Math.floor(A / 4);
+  const JD = Math.floor(365.25 * (year + 4716))
+           + Math.floor(30.6001 * (month + 1))
+           + day + hour / 24 + B - 1524.5;
+  const T = (JD - 2451545.0) / 36525.0;
+  const L0 = 280.46646 + 36000.76983 * T + 0.0003032 * T * T;
+  const M = ((357.52911 + 35999.05029 * T - 0.0001537 * T * T) % 360) * Math.PI / 180;
+  const C = (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(M)
+          + (0.019993 - 0.000101 * T) * Math.sin(2 * M)
+          + 0.000289 * Math.sin(3 * M);
+  return ((L0 + C) % 360 + 360) % 360;
+}
+
+function findSolarTerm(year, targetLon, approxMonth, approxDay) {
+  // approxDay - 5일 부터 탐색
+  let startDate = new Date(year, approxMonth - 1, Math.max(1, approxDay - 5));
+
+  for (let offset = 0; offset < 15; offset++) {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + offset);
+    const y = d.getFullYear(), mo = d.getMonth() + 1, dy = d.getDate();
+
+    let lon0 = solarLongitude(y, mo, dy,  0);
+    let lon1 = solarLongitude(y, mo, dy, 24);
+
+    if (lon1 < lon0 - 300) lon1 += 360;
+    let tgt = targetLon;
+    if (lon0 > 300 && tgt < 60) tgt += 360;
+
+    if (lon0 <= tgt && tgt < lon1) {
+      let lo = 0, hi = 24;
+      for (let i = 0; i < 50; i++) {
+        const mid = (lo + hi) / 2;
+        let lm = solarLongitude(y, mo, dy, mid);
+        if (lon0 > 300 && lm < 60) lm += 360;
+        if (lm < tgt) lo = mid; else hi = mid;
+      }
+      return { date: new Date(y, mo - 1, dy), hour: (lo + hi) / 2 };
+    }
+  }
+  return { date: new Date(year, approxMonth - 1, approxDay), hour: 12 };
+}
+
+const termCache = {};
+function getYearTerms(year) {
+  if (termCache[year]) return termCache[year];
+  const terms = SOLAR_TERMS.map(([lon, am, ad, bi]) => {
+    const { date, hour } = findSolarTerm(year, lon, am, ad);
+    return { date, hour, branch: bi };
+  });
+  termCache[year] = terms;
+  return terms;
+}
+
+// ══════════════════════════════════════════════════════
+//  사주 계산
+// ══════════════════════════════════════════════════════
+function termToDate(t) {
+  const d = new Date(t.date);
+  d.setTime(d.getTime() + t.hour * 3600 * 1000);
+  return d;
+}
+
+function yearPillar(birth) {
+  const year = birth.getFullYear();
+  const ipchun = termToDate(getYearTerms(year)[0]);
+  const eff = birth >= ipchun ? year : year - 1;
+  const idx60 = ((eff - 4) % 60 + 60) % 60;
+  return [idx60 % 10, idx60 % 12];
+}
+
+function monthPillar(birth, yearStem) {
+  const year = birth.getFullYear();
+  const all = [];
+  for (const y of [year - 1, year, year + 1]) {
+    for (const t of getYearTerms(y)) {
+      all.push({ dt: termToDate(t), branch: t.branch });
+    }
+  }
+  all.sort((a, b) => a.dt - b.dt);
+
+  let mb = all[all.length - 1].branch;
+  for (let i = 0; i < all.length - 1; i++) {
+    if (all[i].dt <= birth && birth < all[i + 1].dt) {
+      mb = all[i].branch; break;
+    }
+  }
+  const stemStart = [2, 4, 6, 8, 0][yearStem % 5];
+  const ms = (stemStart + ((mb - 2 + 12) % 12)) % 10;
+  return [ms, mb];
+}
+
+function dayPillar(birth) {
+  const base = new Date(1900, 0, 1);
+  const baseIdx = 10;
+  let adj = new Date(birth);
+  if (birth.getHours() === 23) adj.setDate(adj.getDate() + 1);
+  const delta = Math.round((new Date(adj.getFullYear(), adj.getMonth(), adj.getDate())
+                          - new Date(base.getFullYear(), base.getMonth(), base.getDate()))
+                          / 86400000);
+  const idx60 = ((baseIdx + delta) % 60 + 60) % 60;
+  return [idx60 % 10, idx60 % 12];
+}
+
+function hourPillar(hour, dayStem) {
+  const branch = hour === 23 ? 0 : Math.floor((hour + 1) / 2);
+  const stemStart = [0, 2, 4, 6, 8][dayStem % 5];
+  return [(stemStart + branch) % 10, branch];
+}
+
+function calcSaju(year, month, day, hour, minute) {
+  const birth = new Date(year, month - 1, day, hour, minute);
+
+  const [ys, yb] = yearPillar(birth);
+  const [ms, mb] = monthPillar(birth, ys);
+  const [ds, db] = dayPillar(birth);
+  const [hs, hb] = hourPillar(hour, ds);
+
+  function info(s, b) {
+    return {
+      hanja: 천간[s] + 지지[b],
+      hangul: 천간_한글[s] + 지지_한글[b],
+      stem: 천간[s], branch: 지지[b],
+      stemHangul: 천간_한글[s], branchHangul: 지지_한글[b],
+      stemElem: 천간_오행[s], branchElem: 지지_오행[b],
+      yinyang: 음양[s],
+    };
+  }
+
+  const terms = getYearTerms(year).map((t, i) => {
+    const dt = termToDate(t);
+    const h2 = String(dt.getHours()).padStart(2,'0');
+    const m2 = String(dt.getMinutes()).padStart(2,'0');
+    const mo = dt.getMonth() + 1, dy = dt.getDate();
+    return {
+      name: 절기_이름[i],
+      date: `${mo}/${dy} ${h2}:${m2}`,
+      month: 지지[t.branch] + '월',
+      branch: t.branch,
+      dt,
+    };
+  });
+
+  // 생시가 속한 절기 인덱스 (활성 절기 표시용)
+  let activeTerm = terms.length - 1;
+  for (let i = 0; i < terms.length - 1; i++) {
+    if (terms[i].dt <= birth && birth < terms[i+1].dt) { activeTerm = i; break; }
+  }
+
+  // 십성 계산 (일간 ds 기준)
+  const tenGods = {
+    연간: getTenGod(ds, ys),  연지: getBranchTenGod(ds, yb),
+    월간: getTenGod(ds, ms),  월지: getBranchTenGod(ds, mb),
+    일간: '비견',              일지: getBranchTenGod(ds, db),
+    시간: getTenGod(ds, hs),  시지: getBranchTenGod(ds, hb),
+  };
+
+  // 신살 계산
+  const shinsal = calcShinsal(ys, yb, ms, mb, ds, db, hs, hb);
+
+  // 공망 계산 (일주 기준)
+  const gongmang = calcGongmang(ds, db, [yb, mb, db, hb]);
+
+  return {
+    year, month, day, hour, minute,
+    연주: info(ys, yb), 월주: info(ms, mb),
+    일주: info(ds, db), 시주: info(hs, hb),
+    stems: [ys, ms, ds, hs],
+    branches: [yb, mb, db, hb],
+    띠: 띠_이름[yb],
+    tenGods, shinsal, gongmang,
+    terms, activeTerm,
+  };
+}
+
+// ══════════════════════════════════════════════════════
+//  십성 (十星, Ten Gods) 계산
+// ══════════════════════════════════════════════════════
+const ELEM_IDX = { '木': 0, '火': 1, '土': 2, '金': 3, '水': 4 };
+
+// 지지 정기 (본기 천간 인덱스)
+// 子→癸(9), 丑→己(5), 寅→甲(0), 卯→乙(1), 辰→戊(4), 巳→丙(2),
+// 午→丁(3), 未→己(5), 申→庚(6), 酉→辛(7), 戌→戊(4), 亥→壬(8)
+const 지지_정기 = [9, 5, 0, 1, 4, 2, 3, 5, 6, 7, 4, 8];
+
+// 지장간 (地藏干): [여기, 중기, 정기] — null이면 해당 기 없음
+// 子: 癸 / 丑: 癸辛己 / 寅: 戊丙甲 / 卯: 乙 / 辰: 乙癸戊 / 巳: 戊庚丙
+// 午: 丁己 / 未: 丁乙己 / 申: 己壬庚 / 酉: 辛 / 戌: 辛丁戊 / 亥: 甲壬
+const 지장간_MAP = [
+  [null, null, 9],       // 子: 癸
+  [9, 7, 5],             // 丑: 癸 辛 己
+  [4, 2, 0],             // 寅: 戊 丙 甲
+  [null, null, 1],       // 卯: 乙
+  [1, 9, 4],             // 辰: 乙 癸 戊
+  [4, 6, 2],             // 巳: 戊 庚 丙
+  [null, 5, 3],          // 午: 己 丁
+  [3, 1, 5],             // 未: 丁 乙 己
+  [5, 8, 6],             // 申: 己 壬 庚
+  [null, null, 7],       // 酉: 辛
+  [7, 3, 4],             // 戌: 辛 丁 戊
+  [null, 0, 8],          // 亥: 甲 壬
+];
+
+const 지장간_라벨 = ['여기','중기','정기'];
+
+function getJijanggan(branchIdx, dayStem) {
+  const jj = 지장간_MAP[branchIdx];
+  return jj.map((stemIdx, i) => {
+    if (stemIdx === null) return null;
+    return {
+      label: 지장간_라벨[i],
+      stem: 천간[stemIdx],
+      hangul: 천간_한글[stemIdx],
+      elem: 천간_오행[stemIdx],
+      god: getTenGod(dayStem, stemIdx),
+      stemIdx,
+    };
+  }).filter(Boolean);
+}
+
+function getTenGod(dayStem, targetStem) {
+  if (dayStem === targetStem) return '비견';
+  const dE = ELEM_IDX[천간_오행[dayStem]];
+  const tE = ELEM_IDX[천간_오행[targetStem]];
+  const same = (dayStem % 2) === (targetStem % 2);
+
+  if (dE === tE)              return same ? '비견' : '겁재';
+  if ((dE + 1) % 5 === tE)    return same ? '식신' : '상관';
+  if ((dE + 2) % 5 === tE)    return same ? '편재' : '정재';
+  if ((dE + 3) % 5 === tE)    return same ? '편관' : '정관';
+  if ((dE + 4) % 5 === tE)    return same ? '편인' : '정인';
+  return '';
+}
+
+function getBranchTenGod(dayStem, branchIdx) {
+  return getTenGod(dayStem, 지지_정기[branchIdx]);
+}
+
+// ══════════════════════════════════════════════════════
+//  12운성 (十二運星) 계산
+// ══════════════════════════════════════════════════════
+const 운성_이름 = ['장생','목욕','관대','건록','제왕','쇠','병','사','묘','절','태','양'];
+
+// 각 천간의 장생 지지 위치
+const 장생_MAP = [11, 6, 2, 9, 2, 9, 5, 0, 8, 3];
+// 甲=亥(11), 乙=午(6), 丙=寅(2), 丁=酉(9), 戊=寅(2),
+// 己=酉(9), 庚=巳(5), 辛=子(0), 壬=申(8), 癸=卯(3)
+
+function get12Unsung(stemIdx, branchIdx) {
+  const start = 장생_MAP[stemIdx];
+  const isYang = stemIdx % 2 === 0;
+  let stage;
+  if (isYang) {
+    stage = ((branchIdx - start) % 12 + 12) % 12;
+  } else {
+    stage = ((start - branchIdx) % 12 + 12) % 12;
+  }
+  return 운성_이름[stage];
+}
+
+// 12운성 강약 분류
+function unsungClass(name) {
+  const strong = ['장생','관대','건록','제왕'];
+  const weak   = ['병','사','묘','절'];
+  if (strong.includes(name)) return 'strong';
+  if (weak.includes(name)) return 'weak';
+  return 'neutral';
+}
+
+// ══════════════════════════════════════════════════════
+//  공망 (空亡) 계산
+// ══════════════════════════════════════════════════════
+// 일주의 천간·지지로 순(旬)을 구하고 공망 지지 2개를 반환
+function calcGongmang(dayStem, dayBranch, branches) {
+  // 일주의 60갑자 인덱스: 천간과 지지의 조합
+  // idx60 = (dayStem, dayBranch) 조합에서 천간 위치(0~9) 기준으로 순 시작점 계산
+  // 순(旬) 시작: 甲이 짝을 이루는 지지 = dayBranch - dayStem (mod 12)
+  const startBranch = ((dayBranch - dayStem) % 12 + 12) % 12;
+  // 공망 = 순에서 빠진 지지 2개 = startBranch + 10, startBranch + 11 (mod 12)
+  const gm1 = (startBranch + 10) % 12;
+  const gm2 = (startBranch + 11) % 12;
+
+  // 순 이름
+  const xunName = 천간[0] + 지지[startBranch]; // 甲○旬
+
+  // 4기둥 지지 중 공망에 해당하는지 체크
+  // branches: [yb, mb, db, hb]
+  const pillarNames = ['연주','월주','일주','시주'];
+  const affected = [];
+  branches.forEach((b, i) => {
+    if (b === gm1 || b === gm2) {
+      affected.push(pillarNames[i]);
+    }
+  });
+
+  return {
+    branches: [gm1, gm2],
+    chars: [지지[gm1], 지지[gm2]],
+    hangul: [지지_한글[gm1], 지지_한글[gm2]],
+    xunName,
+    affected,
+    // 4기둥별 공망 여부: [연, 월, 일, 시]
+    isPillarGM: branches.map(b => b === gm1 || b === gm2),
+  };
+}
+
+// ══════════════════════════════════════════════════════
+//  신살 (神殺) 계산
+// ══════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════
+//  12 신살 데이터
+// ══════════════════════════════════════════════════════
+
+// ── 삼합 기반 (년지/일지 기준) ──
+// 역마살: 寅午戌→申, 巳酉丑→亥, 申子辰→寅, 亥卯未→巳
+const 역마_MAP = [2,11,8,5, 2,11,8,5, 2,11,8,5];
+// 도화살: 寅午戌→卯, 巳酉丑→午, 申子辰→酉, 亥卯未→子
+const 도화_MAP = [9,6,3,0, 9,6,3,0, 9,6,3,0];
+// 화개살: 寅午戌→戌, 巳酉丑→丑, 申子辰→辰, 亥卯未→未
+const 화개_MAP = [4,1,10,7, 4,1,10,7, 4,1,10,7];
+
+// ── 일간 기준 ──
+// 천을귀인 (일간 → [지지1, 지지2])
+const 천을귀인_MAP = {
+  0:[1,7], 1:[0,8], 2:[11,9], 3:[11,9], 4:[1,7],
+  5:[0,8], 6:[6,2], 7:[6,2],  8:[5,3],  9:[5,3],
+};
+// 문창귀인 (일간 → 지지)
+const 문창_MAP = [5,6,8,9,8,9,11,0,2,3];
+// 천주귀인 (天廚貴人, 일간 → 지지)
+// 甲→巳, 乙→午, 丙→未, 丁→申, 戊→巳, 己→午, 庚→未, 辛→申, 壬→亥, 癸→子
+const 천주_MAP = [5,6,7,8,5,6,7,8,11,0];
+// 홍염살 (일간 → 지지)
+// 甲→午, 乙→申, 丙→寅, 丁→未, 戊→辰, 己→辰, 庚→戌, 辛→酉, 壬→子, 癸→申
+const 홍염_MAP = [6,8,2,7,4,4,10,9,0,8];
+// 양인살 (양간만, 일간 → 지지)
+const 양인_MAP = {0:3, 2:6, 4:6, 6:9, 8:0};
+
+// ── 년지 기준 ──
+// 백호대살 (년지 → 지지): branch + 4
+const 백호_MAP = [4,5,6,7,8,9,10,11,0,1,2,3];
+
+// ── 원진살: 상호 조합 ──
+// 子↔未, 丑↔午, 寅↔酉, 卯↔申, 辰↔亥, 巳↔戌
+const 원진_MAP = [7,6,9,8,11,10,1,0,3,2,5,4];
+
+// ── 귀문관살: 상호 조합 ──
+// 子↔丑, 寅↔未, 卯↔午, 辰↔巳, 申↔酉, 戌↔亥
+const 귀문_MAP = [1,0,7,6,5,4,3,2,9,8,11,10];
+
+function calcShinsal(ys, yb, ms, mb, ds, db, hs, hb) {
+  // pillars 배열: [시주, 일주, 월주, 연주] 순서
+  const allBranches = [hb, db, mb, yb];
+  const allStems    = [hs, ds, ms, ys];
+  const results = [];
+
+  function add(name, type, desc, pillars) {
+    if (pillars.some(Boolean)) {
+      results.push({name, type, desc, pillars});
+    }
+  }
+
+  // ─── 1. 천을귀인 (길성, 일간 기준) ───
+  {
+    const tgts = 천을귀인_MAP[ds];
+    add('천을귀인', 'good', '위기시 귀인의 도움',
+      allBranches.map(b => tgts.includes(b)));
+  }
+
+  // ─── 2. 문창귀인 (길성, 일간 기준) ───
+  {
+    const tgt = 문창_MAP[ds];
+    add('문창귀인', 'good', '학업·시험운',
+      allBranches.map(b => b === tgt));
+  }
+
+  // ─── 3. 천주귀인 (길성, 일간 기준) ───
+  {
+    const tgt = 천주_MAP[ds];
+    add('천주귀인', 'good', '식록·의식주 복',
+      allBranches.map(b => b === tgt));
+  }
+
+  // ─── 4. 역마살 (중성, 년지/일지 기준) ───
+  {
+    const tgtY = 역마_MAP[yb], tgtD = 역마_MAP[db];
+    const p = [false,false,false,false];
+    for (let i = 0; i < 4; i++) {
+      if (allBranches[i] === tgtY || allBranches[i] === tgtD) {
+        if (!(i===3 && allBranches[i]===tgtY) && !(i===1 && allBranches[i]===tgtD))
+          p[i] = true;
+      }
+    }
+    add('역마살', 'neutral', '이동·변화·해외', p);
+  }
+
+  // ─── 5. 도화살 (중성, 년지/일지 기준) ───
+  {
+    const tgtY = 도화_MAP[yb], tgtD = 도화_MAP[db];
+    const p = [false,false,false,false];
+    for (let i = 0; i < 4; i++) {
+      if (allBranches[i] === tgtY || allBranches[i] === tgtD) {
+        if (!(i===3 && allBranches[i]===tgtY) && !(i===1 && allBranches[i]===tgtD))
+          p[i] = true;
+      }
+    }
+    add('도화살', 'neutral', '매력·이성·예술', p);
+  }
+
+  // ─── 6. 화개살 (중성, 년지/일지 기준) ───
+  {
+    const tgtY = 화개_MAP[yb], tgtD = 화개_MAP[db];
+    const p = [false,false,false,false];
+    for (let i = 0; i < 4; i++) {
+      if (allBranches[i] === tgtY || allBranches[i] === tgtD) {
+        if (!(i===3 && allBranches[i]===tgtY) && !(i===1 && allBranches[i]===tgtD))
+          p[i] = true;
+      }
+    }
+    add('화개살', 'neutral', '학문·종교·예술', p);
+  }
+
+  // ─── 7. 백호대살 (흉성, 년지 기준) ───
+  {
+    const tgt = 백호_MAP[yb];
+    add('백호대살', 'bad', '혈광·수술·사고',
+      allBranches.map(b => b === tgt));
+  }
+
+  // ─── 8. 괴강살 (흉성, 일주 특정 조합) ───
+  {
+    // 庚辰, 庚戌, 壬辰, 壬戌
+    const is괴강 = (ds===6||ds===8) && (db===4||db===10);
+    add('괴강살', 'bad', '극단적 성격·리더십',
+      [false, is괴강, false, false]);
+  }
+
+  // ─── 9. 양인살 (흉성, 일간·양간 기준) ───
+  {
+    const p = [false,false,false,false];
+    if (ds % 2 === 0 && 양인_MAP[ds] !== undefined) {
+      const tgt = 양인_MAP[ds];
+      for (let i = 0; i < 4; i++) if (allBranches[i] === tgt) p[i] = true;
+    }
+    add('양인살', 'bad', '강한 기운·과격', p);
+  }
+
+  // ─── 10. 귀문관살 (흉성, 일지 기준) ───
+  {
+    const tgt = 귀문_MAP[db];
+    const p = allBranches.map((b, i) => i !== 1 && b === tgt); // 일지 자신 제외
+    add('귀문관살', 'bad', '정신적 고통·영감', p);
+  }
+
+  // ─── 11. 원진살 (흉성, 년지↔다른지지 상호 조합) ───
+  {
+    const tgtFromYear = 원진_MAP[yb];
+    const tgtFromDay  = 원진_MAP[db];
+    const p = [false,false,false,false];
+    for (let i = 0; i < 4; i++) {
+      if (allBranches[i] === tgtFromYear || allBranches[i] === tgtFromDay) {
+        if (!(i===3 && allBranches[i]===tgtFromYear) && !(i===1 && allBranches[i]===tgtFromDay))
+          p[i] = true;
+      }
+    }
+    add('원진살', 'bad', '미움·갈등·인연 단절', p);
+  }
+
+  // ─── 12. 홍염살 (중성, 일간 기준) ───
+  {
+    const tgt = 홍염_MAP[ds];
+    add('홍염살', 'neutral', '색정·이성·매력',
+      allBranches.map(b => b === tgt));
+  }
+
+  return results;
+}
+
+// ══════════════════════════════════════════════════════
+//  대운·연운·월운 계산
+// ══════════════════════════════════════════════════════
+
+function idx60(stem, branch) {
+  for (let i = 0; i < 60; i++) {
+    if (i % 10 === stem && i % 12 === branch) return i;
+  }
+  return 0;
+}
+
+function calcDaeun(birth, yearStem, monthStem, monthBranch, gender) {
+  // 순행/역행: 양남음녀 → 순행, 음남양녀 → 역행
+  const isYang = yearStem % 2 === 0;
+  const isMale = gender === '남';
+  const forward = (isYang && isMale) || (!isYang && !isMale);
+
+  // 생일 전후 절기 찾기
+  const year = birth.getFullYear();
+  const allTerms = [];
+  for (const y of [year - 1, year, year + 1]) {
+    for (const t of getYearTerms(y)) {
+      allTerms.push(termToDate(t));
+    }
+  }
+  allTerms.sort((a, b) => a - b);
+
+  let prevTerm = allTerms[0], nextTerm = allTerms[allTerms.length - 1];
+  for (let i = 0; i < allTerms.length - 1; i++) {
+    if (allTerms[i] <= birth && birth < allTerms[i + 1]) {
+      prevTerm = allTerms[i];
+      nextTerm = allTerms[i + 1];
+      break;
+    }
+  }
+
+  // 대운수: (절기까지 일수) ÷ 3
+  const days = forward
+    ? (nextTerm - birth) / 86400000
+    : (birth - prevTerm) / 86400000;
+  const daeunAge = Math.round(days / 3);
+
+  // 대운 간지 생성 (12개)
+  const mIdx = idx60(monthStem, monthBranch);
+  const dauns = [];
+  for (let i = 1; i <= 12; i++) {
+    const n = forward
+      ? (mIdx + i) % 60
+      : ((mIdx - i) % 60 + 60) % 60;
+    const startAge = daeunAge + (i - 1) * 10;
+    const birthYear = birth.getFullYear();
+    dauns.push({
+      stem: n % 10,
+      branch: n % 12,
+      hanja: 천간[n%10] + 지지[n%12],
+      hangul: 천간_한글[n%10] + 지지_한글[n%12],
+      startAge,
+      endAge: startAge + 9,
+      startYear: birthYear + startAge,
+      endYear: birthYear + startAge + 9,
+    });
+  }
+
+  return {
+    forward,
+    daeunAge,
+    monthHanja: 천간[monthStem] + 지지[monthBranch],
+    monthHangul: 천간_한글[monthStem] + 지지_한글[monthBranch],
+    dauns,
+  };
+}
+
+function getYearPillar(year) {
+  const idx = ((year - 4) % 60 + 60) % 60;
+  return {
+    stem: idx % 10, branch: idx % 12,
+    hanja: 천간[idx%10] + 지지[idx%12],
+    hangul: 천간_한글[idx%10] + 지지_한글[idx%12],
+  };
+}
+
+function getMonthPillarsForYear(year) {
+  // 해당 년도의 12절기 구간별 월주 계산
+  const terms = getYearTerms(year);
+  const yp = getYearPillar(year);
+  const stemStart = [2, 4, 6, 8, 0][yp.stem % 5];
+
+  return terms.map((t, i) => {
+    const mb = t.branch;
+    const ms = (stemStart + ((mb - 2 + 12) % 12)) % 10;
+    const dt = termToDate(t);
+    return {
+      stem: ms, branch: mb,
+      hanja: 천간[ms] + 지지[mb],
+      hangul: 천간_한글[ms] + 지지_한글[mb],
+      termName: 절기_이름[i],
+      month: dt.getMonth() + 1,
+    };
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  형충회합 (刑沖會合) 계산
+// ══════════════════════════════════════════════════════
+
+// 기둥 이름 (시주=0, 일주=1, 월주=2, 연주=3)
+const PILLAR_NAMES = ['시주','일주','월주','연주'];
+
+function calcHCHH(stems, branches) {
+  // stems: [ys, ms, ds, hs], branches: [yb, mb, db, hb]
+  // 내부적으로 사주 순서: 연(0), 월(1), 일(2), 시(3)
+  const results = [];
+  const pillarLabels = ['연주','월주','일주','시주'];
+
+  // ── 천간합 (天干合) ──
+  // 甲己합토, 乙庚합금, 丙辛합수, 丁壬합목, 戊癸합화
+  const 천간합_PAIRS = [[0,5,'土'],[1,6,'金'],[2,7,'水'],[3,8,'木'],[4,9,'火']];
+  for (let i = 0; i < 4; i++) {
+    for (let j = i + 1; j < 4; j++) {
+      for (const [a, b, elem] of 천간합_PAIRS) {
+        if ((stems[i] === a && stems[j] === b) || (stems[i] === b && stems[j] === a)) {
+          results.push({
+            type: '합', subtype: '천간합',
+            chars: `${천간[stems[i]]}${천간[stems[j]]}`,
+            detail: `${pillarLabels[i]}↔${pillarLabels[j]} 천간합(${elem})`,
+            desc: `${천간_한글[stems[i]]}${천간_한글[stems[j]]}합 → ${elem}`,
+          });
+        }
+      }
+    }
+  }
+
+  // ── 지지육합 (地支六合) ──
+  // 子丑합토, 寅亥합목, 卯戌합화, 辰酉합금, 巳申합수, 午未합화
+  const 육합_PAIRS = [[0,1,'土'],[2,11,'木'],[3,10,'火'],[4,9,'金'],[5,8,'水'],[6,7,'火']];
+  for (let i = 0; i < 4; i++) {
+    for (let j = i + 1; j < 4; j++) {
+      for (const [a, b, elem] of 육합_PAIRS) {
+        if ((branches[i] === a && branches[j] === b) || (branches[i] === b && branches[j] === a)) {
+          results.push({
+            type: '합', subtype: '육합',
+            chars: `${지지[branches[i]]}${지지[branches[j]]}`,
+            detail: `${pillarLabels[i]}↔${pillarLabels[j]} 육합(${elem})`,
+            desc: `${지지_한글[branches[i]]}${지지_한글[branches[j]]}합 → ${elem}`,
+          });
+        }
+      }
+    }
+  }
+
+  // ── 지지삼합 (地支三合) ──
+  // 申子辰=水, 寅午戌=火, 巳酉丑=金, 亥卯未=木
+  const 삼합_TRIPLES = [
+    [[8,0,4],'水'], [[2,6,10],'火'], [[5,9,1],'金'], [[11,3,7],'木']
+  ];
+  const branchSet = new Set(branches);
+  for (const [triple, elem] of 삼합_TRIPLES) {
+    const matched = triple.filter(b => branches.includes(b));
+    if (matched.length >= 2) {
+      // 반합 or 삼합
+      const pillarsInvolved = [];
+      for (const b of matched) {
+        branches.forEach((br, idx) => {
+          if (br === b && !pillarsInvolved.includes(pillarLabels[idx])) {
+            pillarsInvolved.push(pillarLabels[idx]);
+          }
+        });
+      }
+      const isFullTriple = matched.length === 3;
+      results.push({
+        type: '합', subtype: isFullTriple ? '삼합' : '반합(삼합)',
+        chars: matched.map(b => 지지[b]).join(''),
+        detail: `${pillarsInvolved.join('·')} ${isFullTriple ? '삼합' : '반합'}(${elem})`,
+        desc: `${matched.map(b => 지지_한글[b]).join('')} → ${elem}${isFullTriple ? '' : ' (반합)'}`,
+      });
+    }
+  }
+
+  // ── 지지방합 (地支方合) ──
+  // 寅卯辰=木, 巳午未=火, 申酉戌=金, 亥子丑=水
+  const 방합_TRIPLES = [
+    [[2,3,4],'木'], [[5,6,7],'火'], [[8,9,10],'金'], [[11,0,1],'水']
+  ];
+  for (const [triple, elem] of 방합_TRIPLES) {
+    const matched = triple.filter(b => branches.includes(b));
+    if (matched.length === 3) {
+      const pillarsInvolved = [];
+      for (const b of matched) {
+        branches.forEach((br, idx) => {
+          if (br === b && !pillarsInvolved.includes(pillarLabels[idx])) {
+            pillarsInvolved.push(pillarLabels[idx]);
+          }
+        });
+      }
+      results.push({
+        type: '합', subtype: '방합',
+        chars: matched.map(b => 지지[b]).join(''),
+        detail: `${pillarsInvolved.join('·')} 방합(${elem})`,
+        desc: `${matched.map(b => 지지_한글[b]).join('')} → ${elem} 방합`,
+      });
+    }
+  }
+
+  // ── 지지충 (地支沖) ──
+  // 子午, 丑未, 寅申, 卯酉, 辰戌, 巳亥
+  for (let i = 0; i < 4; i++) {
+    for (let j = i + 1; j < 4; j++) {
+      if ((branches[i] + 6) % 12 === branches[j] || (branches[j] + 6) % 12 === branches[i]) {
+        results.push({
+          type: '충', subtype: '지지충',
+          chars: `${지지[branches[i]]}${지지[branches[j]]}`,
+          detail: `${pillarLabels[i]}↔${pillarLabels[j]} 충`,
+          desc: `${지지_한글[branches[i]]}${지지_한글[branches[j]]}충`,
+        });
+      }
+    }
+  }
+
+  // ── 지지형 (地支刑) ──
+  // 寅巳형, 巳申형, 申寅형 (무은지형/삼형살)
+  // 丑戌형, 戌未형, 未丑형 (지세지형)
+  // 子卯형 (무례지형)
+  // 辰辰, 午午, 酉酉, 亥亥 (자형)
+  const 형_PAIRS = [
+    [2,5,'무은지형'],[5,8,'무은지형'],[8,2,'무은지형'],
+    [1,10,'지세지형'],[10,7,'지세지형'],[7,1,'지세지형'],
+    [0,3,'무례지형'],[3,0,'무례지형'],
+  ];
+  const 자형 = [4,6,9,11]; // 辰辰, 午午, 酉酉, 亥亥
+  for (let i = 0; i < 4; i++) {
+    for (let j = i + 1; j < 4; j++) {
+      for (const [a, b, name] of 형_PAIRS) {
+        if (branches[i] === a && branches[j] === b) {
+          results.push({
+            type: '형', subtype: name,
+            chars: `${지지[branches[i]]}${지지[branches[j]]}`,
+            detail: `${pillarLabels[i]}↔${pillarLabels[j]} ${name}`,
+            desc: `${지지_한글[branches[i]]}${지지_한글[branches[j]]}형 (${name})`,
+          });
+        }
+      }
+      // 자형
+      if (branches[i] === branches[j] && 자형.includes(branches[i])) {
+        results.push({
+          type: '형', subtype: '자형',
+          chars: `${지지[branches[i]]}${지지[branches[j]]}`,
+          detail: `${pillarLabels[i]}↔${pillarLabels[j]} 자형`,
+          desc: `${지지_한글[branches[i]]}${지지_한글[branches[j]]}형 (자형)`,
+        });
+      }
+    }
+  }
+
+  // ── 지지해 (地支害/穿) ──
+  // 子未, 丑午, 寅巳, 卯辰, 申亥, 酉戌
+  const 해_PAIRS = [[0,7],[1,6],[2,5],[3,4],[8,11],[9,10]];
+  for (let i = 0; i < 4; i++) {
+    for (let j = i + 1; j < 4; j++) {
+      for (const [a, b] of 해_PAIRS) {
+        if ((branches[i] === a && branches[j] === b) || (branches[i] === b && branches[j] === a)) {
+          results.push({
+            type: '해', subtype: '지지해',
+            chars: `${지지[branches[i]]}${지지[branches[j]]}`,
+            detail: `${pillarLabels[i]}↔${pillarLabels[j]} 해`,
+            desc: `${지지_한글[branches[i]]}${지지_한글[branches[j]]}해 (원진)`,
+          });
+        }
+      }
+    }
+  }
+
+  // ── 지지파 (地支破) ──
+  // 子酉, 丑辰, 寅亥, 午卯, 未戌, 巳申
+  const 파_PAIRS = [[0,9],[1,4],[2,11],[6,3],[7,10],[5,8]];
+  for (let i = 0; i < 4; i++) {
+    for (let j = i + 1; j < 4; j++) {
+      for (const [a, b] of 파_PAIRS) {
+        if ((branches[i] === a && branches[j] === b) || (branches[i] === b && branches[j] === a)) {
+          results.push({
+            type: '파', subtype: '지지파',
+            chars: `${지지[branches[i]]}${지지[branches[j]]}`,
+            detail: `${pillarLabels[i]}↔${pillarLabels[j]} 파`,
+            desc: `${지지_한글[branches[i]]}${지지_한글[branches[j]]}파`,
+          });
+        }
+      }
+    }
+  }
+
+  // ── 원진 (怨嗔) ──
+  // 子未, 丑午, 寅酉, 卯申, 辰亥, 巳戌
+  const 원진_PAIRS = [[0,7],[1,6],[2,9],[3,8],[4,11],[5,10]];
+  for (let i = 0; i < 4; i++) {
+    for (let j = i + 1; j < 4; j++) {
+      for (const [a, b] of 원진_PAIRS) {
+        if ((branches[i] === a && branches[j] === b) || (branches[i] === b && branches[j] === a)) {
+          results.push({
+            type: '원진', subtype: '원진',
+            chars: `${지지[branches[i]]}${지지[branches[j]]}`,
+            detail: `${pillarLabels[i]}↔${pillarLabels[j]} 원진`,
+            desc: `${지지_한글[branches[i]]}${지지_한글[branches[j]]} 원진`,
+          });
+        }
+      }
+    }
+  }
+
+  // 중복 제거 (chars + type 기준)
+  const seen = new Set();
+  return results.filter(r => {
+    const key = `${r.type}:${r.chars}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  신강/신약 (身強/身弱) 판단
+// ══════════════════════════════════════════════════════
+
+// 오행 상생: 木→火→土→金→水→木
+// 생조(生助): 같은 오행(비겁) + 나를 생하는 오행(인성)
+// 극설(剋洩): 내가 생하는(식상) + 내가 극하는(재성) + 나를 극하는(관살)
+
+function calcSingang(stems, branches) {
+  // stems: [ys, ms, ds, hs], branches: [yb, mb, db, hb]
+  const ds = stems[2]; // 일간
+  const dsElem = ELEM_IDX[천간_오행[ds]];
+
+  // 오행 관계 판별: 대상 오행이 일간을 돕는지(+1), 빼앗는지(-1)
+  function relation(elemIdx) {
+    if (elemIdx === dsElem) return 1;                     // 비겁 (같은 오행)
+    if ((elemIdx + 1) % 5 === dsElem) return 1;           // 인성 (나를 생함)
+    return -1;                                             // 식상/재성/관살
+  }
+
+  // 십성 카테고리 분류
+  function godCategory(god) {
+    if (!god) return 'none';
+    if (['비견','겁재'].includes(god)) return '비겁';
+    if (['편인','정인'].includes(god)) return '인성';
+    if (['식신','상관'].includes(god)) return '식상';
+    if (['편재','정재'].includes(god)) return '재성';
+    if (['편관','정관'].includes(god)) return '관살';
+    return 'none';
+  }
+
+  // ── 1. 득령 (得令): 월지가 일간을 돕는가 ──
+  const monthBranchElem = ELEM_IDX[지지_오행[branches[1]]];
+  const deukryeong = relation(monthBranchElem) > 0;
+
+  // 월지 정기의 십성으로도 판단
+  const monthJeonggi = 지지_정기[branches[1]];
+  const monthGod = getTenGod(ds, monthJeonggi);
+  const monthCat = godCategory(monthGod);
+  const deukryeongDetail = monthCat === '비겁' || monthCat === '인성';
+
+  // ── 2. 득지 (得地): 4개 지지에 일간의 뿌리(통근)가 있는가 ──
+  let tonggeunCount = 0;
+  const tonggeunPillars = [];
+  const pillarNames = ['연지','월지','일지','시지'];
+  for (let i = 0; i < 4; i++) {
+    const jg = 지지_정기[branches[i]];
+    const god = getTenGod(ds, jg);
+    const cat = godCategory(god);
+    if (cat === '비겁' || cat === '인성') {
+      tonggeunCount++;
+      tonggeunPillars.push(pillarNames[i]);
+    }
+  }
+  const deukji = tonggeunCount >= 2;
+
+  // ── 3. 득세 (得勢): 천간에 비겁·인성이 많은가 ──
+  let helpStemCount = 0;
+  const stemNames = ['연간','월간','일간','시간'];
+  const helpStems = [];
+  for (let i = 0; i < 4; i++) {
+    if (i === 2) continue; // 일간 자신 제외
+    const god = getTenGod(ds, stems[i]);
+    const cat = godCategory(god);
+    if (cat === '비겁' || cat === '인성') {
+      helpStemCount++;
+      helpStems.push(stemNames[i]);
+    }
+  }
+  const deukse = helpStemCount >= 2;
+
+  // ── 종합 점수 계산 ──
+  // 가중치: 월지 30, 일지 20, 시지 15, 연지 10, 천간 각 8 (일간 제외 3개 = 24)
+  const weights = {
+    연간: 8, 월간: 8, 시간: 8,
+    연지: 10, 월지: 30, 일지: 20, 시지: 15,
+  };
+
+  let helpScore = 0, drainScore = 0;
+  const details = [];
+
+  // 천간 (일간 제외)
+  const stemPositions = [
+    { name: '연간', idx: 0 },
+    { name: '월간', idx: 1 },
+    { name: '시간', idx: 3 },
+  ];
+  for (const pos of stemPositions) {
+    const god = getTenGod(ds, stems[pos.idx]);
+    const cat = godCategory(god);
+    const w = weights[pos.name];
+    const isHelp = cat === '비겁' || cat === '인성';
+    if (isHelp) helpScore += w; else drainScore += w;
+    details.push({
+      position: pos.name,
+      char: 천간[stems[pos.idx]] + '(' + 천간_한글[stems[pos.idx]] + ')',
+      god, cat, weight: w, isHelp,
+    });
+  }
+
+  // 지지
+  const branchPositions = [
+    { name: '연지', idx: 0 },
+    { name: '월지', idx: 1 },
+    { name: '일지', idx: 2 },
+    { name: '시지', idx: 3 },
+  ];
+  for (const pos of branchPositions) {
+    const jg = 지지_정기[branches[pos.idx]];
+    const god = getTenGod(ds, jg);
+    const cat = godCategory(god);
+    const w = weights[pos.name];
+    const isHelp = cat === '비겁' || cat === '인성';
+    if (isHelp) helpScore += w; else drainScore += w;
+    details.push({
+      position: pos.name,
+      char: 지지[branches[pos.idx]] + '(' + 지지_한글[branches[pos.idx]] + ')',
+      god, cat, weight: w, isHelp,
+    });
+  }
+
+  const total = helpScore + drainScore;
+  const helpPct = Math.round(helpScore / total * 100);
+  const drainPct = 100 - helpPct;
+
+  // 판정
+  let result, resultClass;
+  const diff = helpScore - drainScore;
+  if (diff > 10) { result = '신강(身強)'; resultClass = 'singang'; }
+  else if (diff < -10) { result = '신약(身弱)'; resultClass = 'sinyak'; }
+  else { result = '중화(中和)'; resultClass = 'junghwa'; }
+
+  // 득령/득지/득세 중 2개 이상이면 신강 쪽으로 보정
+  const deukCount = [deukryeong || deukryeongDetail, deukji, deukse].filter(Boolean).length;
+
+  // 용신 방향
+  let yongsinDir;
+  if (resultClass === 'singang') {
+    yongsinDir = '식상·재성·관살 (설기·극기 필요)';
+  } else if (resultClass === 'sinyak') {
+    yongsinDir = '인성·비겁 (생조·부조 필요)';
+  } else {
+    yongsinDir = '균형 유지 (대운 흐름에 따라 조율)';
+  }
+
+  return {
+    result, resultClass,
+    helpScore, drainScore, total, helpPct, drainPct,
+    deukryeong: deukryeong || deukryeongDetail,
+    deukji, deukse, deukCount,
+    tonggeunPillars, helpStems,
+    details,
+    yongsinDir,
+    dayStem: ds,
+    dayElem: 천간_오행[ds],
+  };
+}
+
+// ══════════════════════════════════════════════════════
+//  렌더링
+// ══════════════════════════════════════════════════════
+const elemColors = {
+  '木': { cls: 'tag-wood',  bar: '#2d8a2d' },
+  '火': { cls: 'tag-fire',  bar: '#c04040' },
+  '土': { cls: 'tag-earth', bar: '#b87c2a' },
+  '金': { cls: 'tag-metal', bar: '#6060b0' },
+  '水': { cls: 'tag-water', bar: '#3070c0' },
+};
+
+function elemTag(elem) {
+  return `<span class="tag ${elemColors[elem].cls}">${elem}</span>`;
+}
+
+// 오행별 글자 색상
+const ELEM_COLORS = {
+  '木': '#6fcf6f', '火': '#f07070', '土': '#d4a84b', '金': '#a0a0d0', '水': '#70a0f0',
+};
+
+function colorStem(stemIdx) {
+  const c = ELEM_COLORS[천간_오행[stemIdx]];
+  return `<span style="color:${c}">${천간[stemIdx]}</span>`;
+}
+function colorBranch(branchIdx) {
+  const c = ELEM_COLORS[지지_오행[branchIdx]];
+  return `<span style="color:${c}">${지지[branchIdx]}</span>`;
+}
+function colorHanja(stemIdx, branchIdx) {
+  return colorStem(stemIdx) + colorBranch(branchIdx);
+}
+function colorHangulStem(stemIdx) {
+  const c = ELEM_COLORS[천간_오행[stemIdx]];
+  return `<span style="color:${c}">${천간_한글[stemIdx]}</span>`;
+}
+function colorHangulBranch(branchIdx) {
+  const c = ELEM_COLORS[지지_오행[branchIdx]];
+  return `<span style="color:${c}">${지지_한글[branchIdx]}</span>`;
+}
+function colorHangul(stemIdx, branchIdx) {
+  return colorHangulStem(stemIdx) + colorHangulBranch(branchIdx);
+}
+
+function godTag(god) {
+  if (!god) return '';
+  return `<span class="ten-god god-${god}">${god}</span>`;
+}
+
+function renderPillar(info, name, stemGod, branchGod, jijanggan, isGongmang) {
+  const stemLabel = stemGod ? godTag(stemGod) : '';
+  const jjHtml = jijanggan && jijanggan.length > 0 ? `
+    <div class="jijanggan">
+      <div class="jj-title">지장간</div>
+      ${jijanggan.map(jj => {
+        const c = ELEM_COLORS[jj.elem];
+        return `<div class="jj-row">
+          <span class="jj-label">${jj.label}</span>
+          <span class="jj-stem" style="color:${c}">${jj.stem}(${jj.hangul})</span>
+          <span class="jj-god">${godTag(jj.god)}</span>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+  return `
+    <div class="pillar">
+      <div class="pillar-name">${name}</div>
+      <div>${stemLabel}</div>
+      <div class="stem-row" style="margin-top:4px">
+        <span>${info.stem} ${info.stemHangul}</span>
+        ${elemTag(info.stemElem)}
+      </div>
+      <div class="divider"></div>
+      <div class="branch-row">
+        <span>${info.branch} ${info.branchHangul}</span>
+        ${elemTag(info.branchElem)}
+      </div>
+      <div>${godTag(branchGod)}</div>
+      ${isGongmang ? '<span class="gm-mark">공망</span>' : ''}
+      ${jjHtml}
+      <div class="pillar-bottom">
+        <div class="hanja">${info.hanja}</div>
+        <div class="hangul">${info.hangul}</div>
+      </div>
+    </div>`;
+}
+
+function calculate() {
+  const y  = parseInt(document.getElementById('year').value);
+  const mo = parseInt(document.getElementById('month').value);
+  const d  = parseInt(document.getElementById('day').value);
+  const h  = parseInt(document.getElementById('hour').value);
+  const mn = parseInt(document.getElementById('minute').value);
+
+  if (isNaN(y)||isNaN(mo)||isNaN(d)||isNaN(h)||isNaN(mn)) return;
+
+  const useSolar = document.getElementById('useSolarTime').checked;
+  const solarEl = document.getElementById('r-solar');
+
+  let actualH = h, actualMn = mn;
+
+  if (useSolar) {
+    const citySelect = document.getElementById('city');
+    const lon = citySelect.value === 'custom'
+      ? parseFloat(document.getElementById('customLon').value) || 127.0
+      : parseFloat(citySelect.value);
+    const cityName = citySelect.value === 'custom'
+      ? `경도 ${lon}°`
+      : citySelect.options[citySelect.selectedIndex].text;
+
+    const st = calcTrueSolarTime(y, mo, d, h, mn, lon);
+    actualH = st.correctedHour;
+    actualMn = st.correctedMinute;
+
+    const sign = (v) => v >= 0 ? `+${v.toFixed(1)}` : v.toFixed(1);
+    solarEl.style.display = 'block';
+    solarEl.innerHTML = `
+      <h3>진태양시 보정</h3>
+      <div class="row">
+        <span class="label">출생지</span>
+        <span class="value">${cityName} (${lon}°E)</span>
+      </div>
+      <div class="row">
+        <span class="label">경도 보정</span>
+        <span class="value">${sign(st.lonCorrection)}분  (기준 ${KST_MERIDIAN}° - ${lon}°)</span>
+      </div>
+      <div class="row">
+        <span class="label">균시차 (EoT)</span>
+        <span class="value">${sign(st.eot)}분</span>
+      </div>
+      <div class="row">
+        <span class="label">총 보정</span>
+        <span class="value highlight">${sign(st.totalCorrection)}분</span>
+      </div>
+      <div class="row" style="margin-top:6px;padding-top:6px;border-top:1px solid #2a3560">
+        <span class="label">표준시 (KST)</span>
+        <span class="value">${String(h).padStart(2,'0')}:${String(mn).padStart(2,'0')}</span>
+      </div>
+      <div class="row">
+        <span class="label">진태양시</span>
+        <span class="value highlight">${String(actualH).padStart(2,'0')}:${String(actualMn).padStart(2,'0')}</span>
+      </div>`;
+  } else {
+    solarEl.style.display = 'none';
+  }
+
+  const r = calcSaju(y, mo, d, actualH, actualMn);
+
+  document.getElementById('r-birth').textContent =
+    `${y}년 ${mo}월 ${d}일 ${String(h).padStart(2,'0')}시 ${String(mn).padStart(2,'0')}분`
+    + (useSolar ? ` → 진태양시 ${String(actualH).padStart(2,'0')}:${String(actualMn).padStart(2,'0')}` : '');
+  document.getElementById('r-ddi').textContent = `띠: ${r.띠}`;
+
+  const pillarsEl = document.getElementById('r-pillars');
+  pillarsEl.innerHTML = [
+    renderPillar(r.시주, '時柱 시주', r.tenGods.시간, r.tenGods.시지, getJijanggan(r.branches[3], r.stems[2]), r.gongmang.isPillarGM[3]),
+    renderPillar(r.일주, '日柱 일주', r.tenGods.일간,  r.tenGods.일지, getJijanggan(r.branches[2], r.stems[2]), r.gongmang.isPillarGM[2]),
+    renderPillar(r.월주, '月柱 월주', r.tenGods.월간, r.tenGods.월지, getJijanggan(r.branches[1], r.stems[2]), r.gongmang.isPillarGM[1]),
+    renderPillar(r.연주, '年柱 연주', r.tenGods.연간, r.tenGods.연지, getJijanggan(r.branches[0], r.stems[2]), r.gongmang.isPillarGM[0]),
+  ].join('');
+
+  // ── 공망 요약 ──
+  const gmEl = document.getElementById('r-gongmang');
+  gmEl.style.display = 'flex';
+  const gm = r.gongmang;
+  gmEl.innerHTML = `
+    <span class="gm-label">공망 (空亡) · ${gm.xunName}旬</span>
+    <span class="gm-chars">${gm.chars[0]}(${gm.hangul[0]}) ${gm.chars[1]}(${gm.hangul[1]})</span>
+    ${gm.affected.length > 0
+      ? `<span class="gm-affected">해당: ${gm.affected.join(', ')}</span>`
+      : `<span class="gm-none">해당 기둥 없음</span>`}`;
+
+  // ── 십성 분포 ──
+  const allGods = [
+    r.tenGods.연간, r.tenGods.연지,
+    r.tenGods.월간, r.tenGods.월지,
+    r.tenGods.일지,
+    r.tenGods.시간, r.tenGods.시지,
+  ]; // 일간(일원) 제외 = 7자
+  const godNames = ['비견','겁재','식신','상관','편재','정재','편관','정관','편인','정인'];
+  const godCounts = {};
+  godNames.forEach(g => godCounts[g] = 0);
+  allGods.forEach(g => { if (g) godCounts[g]++; });
+
+  const sipsungEl = document.getElementById('r-sipsung');
+  sipsungEl.style.display = 'block';
+  sipsungEl.innerHTML = `
+    <h3>십성 분포 (일간 ${r.일주.stem}${r.일주.stemHangul} 기준)</h3>
+    <div class="sipsung-grid">
+      ${godNames.map(g => `
+        <div class="sipsung-item">
+          <div class="name">${godTag(g)}</div>
+          <div class="cnt">${godCounts[g]}</div>
+        </div>`).join('')}
+    </div>`;
+
+  // ── 신살 테이블 (12개 고정) ──
+  const shinsalEl = document.getElementById('r-shinsal');
+  const good    = r.shinsal.filter(s => s.type === 'good');
+  const neutral = r.shinsal.filter(s => s.type === 'neutral');
+  const bad     = r.shinsal.filter(s => s.type === 'bad');
+
+  const renderTable = (title, items, type) => {
+    if (items.length === 0) return '';
+    const hasAny = items.some(s => s.pillars.some(Boolean));
+    return `
+      <div style="margin-bottom:16px">
+        <div style="font-size:.75rem;color:#666;margin-bottom:8px">${title}</div>
+        <table class="shinsal-table">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding-left:8px">신살</th>
+              <th>시주</th><th>일주</th><th>월주</th><th>연주</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map(s => `
+              <tr class="ss-${type}">
+                <td>${s.name}</td>
+                ${s.pillars.map(p => `<td>${p ? '<span class="ss-mark">●</span>' : ''}</td>`).join('')}
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  };
+
+  shinsalEl.style.display = 'block';
+  shinsalEl.innerHTML = `
+    <h3>신살과 길성</h3>
+    ${renderTable('길성 (吉星)', good, 'good')}
+    ${renderTable('중성', neutral, 'neutral')}
+    ${renderTable('흉성 (凶星)', bad, 'bad')}
+    <div style="font-size:.7rem;color:#555;margin-top:10px;line-height:1.6">
+      ${r.shinsal.filter(s => s.pillars.some(Boolean)).map(s =>
+        `<span class="ss-${s.type}">${s.name}</span>: ${s.desc}`
+      ).join(' · ')}
+    </div>`;
+
+  // ── 형충회합 ──
+  const hchhEl = document.getElementById('r-hchh');
+  const hchh = calcHCHH(r.stems, r.branches);
+  hchhEl.style.display = 'block';
+
+  if (hchh.length === 0) {
+    hchhEl.innerHTML = `
+      <h3>형충회합 (刑沖會合)</h3>
+      <div class="hchh-none">사주 내 형충회합이 없습니다.</div>`;
+  } else {
+    const groupOrder = ['합','충','형','해','파','원진'];
+    const groupNames = {
+      '합': '合 (합)',
+      '충': '沖 (충)',
+      '형': '刑 (형)',
+      '해': '害 (해)',
+      '파': '破 (파)',
+      '원진': '怨嗔 (원진)',
+    };
+    let html = '<h3>형충회합 (刑沖會合)</h3>';
+    for (const type of groupOrder) {
+      const items = hchh.filter(h => h.type === type);
+      if (items.length === 0) continue;
+      html += `<div class="hchh-section">
+        <div class="hchh-section-title">${groupNames[type]}</div>
+        <div class="hchh-grid">
+          ${items.map(h => `
+            <div class="hchh-tag hchh-${h.type}">
+              <span>${h.subtype}</span>
+              <span class="chars">${h.chars}</span>
+              <span class="chars">${h.detail}</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    }
+    // 설명
+    html += `<div style="font-size:.7rem;color:#555;margin-top:10px;line-height:1.6">
+      ${hchh.map(h => `<span class="hchh-tag hchh-${h.type}" style="padding:2px 6px;font-size:.65rem;margin:1px">${h.desc}</span>`).join(' ')}
+    </div>`;
+    hchhEl.innerHTML = html;
+  }
+
+  // ── 12운성 ──
+  const unsungEl = document.getElementById('r-unsung');
+  unsungEl.style.display = 'block';
+  const dayStem = r.stems[2]; // 일간
+  const pillarInfo12 = [
+    { label: '시주', branch: r.branches[3], branchChar: r.시주.branch, branchHangul: r.시주.branchHangul },
+    { label: '일주', branch: r.branches[2], branchChar: r.일주.branch, branchHangul: r.일주.branchHangul },
+    { label: '월주', branch: r.branches[1], branchChar: r.월주.branch, branchHangul: r.월주.branchHangul },
+    { label: '연주', branch: r.branches[0], branchChar: r.연주.branch, branchHangul: r.연주.branchHangul },
+  ];
+  const unsungResults = pillarInfo12.map(p => ({
+    ...p,
+    unsung: get12Unsung(dayStem, p.branch),
+  }));
+
+  // 운성 설명
+  const 운성_설명 = {
+    '장생': '탄생·시작의 기운, 새로운 출발',
+    '목욕': '불안정·변화, 감정 기복',
+    '관대': '성장·준비, 사회 진출',
+    '건록': '안정·독립, 왕성한 활동',
+    '제왕': '최고·절정, 강한 에너지',
+    '쇠': '하강·안정, 원숙함',
+    '병': '쇠약·소모, 건강 주의',
+    '사': '정지·끝, 정신적 성숙',
+    '묘': '저장·잠복, 내면 축적',
+    '절': '단절·소멸, 새로운 전환',
+    '태': '잉태·시작, 가능성',
+    '양': '양육·성장, 준비 단계',
+  };
+
+  // 에너지 강도 점수 (시각화용)
+  const 운성_점수 = {
+    '제왕': 100, '건록': 90, '관대': 75, '장생': 70,
+    '양': 50, '태': 40,
+    '쇠': 35, '목욕': 30,
+    '병': 20, '사': 15, '묘': 10, '절': 5,
+  };
+
+  unsungEl.innerHTML = `
+    <h3>12운성 (十二運星) — 일간 ${r.일주.stem}${r.일주.stemHangul} 기준</h3>
+    <div class="unsung-grid">
+      ${unsungResults.map(u => `
+        <div class="unsung-item">
+          <div class="pillar-label">${u.label}</div>
+          <div class="branch-char">${u.branchChar} ${u.branchHangul}</div>
+          <div class="unsung-name ${unsungClass(u.unsung)}">${u.unsung}</div>
+          <div class="unsung-bar-wrap">
+            <div class="unsung-bar-track">
+              <div class="unsung-bar-fill" style="width:${운성_점수[u.unsung]}%;background:${
+                unsungClass(u.unsung) === 'strong' ? '#4a9' :
+                unsungClass(u.unsung) === 'weak' ? '#d66' : '#c9a96e'
+              }"></div>
+            </div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="unsung-desc">
+      ${unsungResults.map(u =>
+        `<strong>${u.label}</strong> ${u.branchChar}(${u.branchHangul}): <span class="unsung-name ${unsungClass(u.unsung)}" style="font-size:.7rem">${u.unsung}</span> — ${운성_설명[u.unsung]}`
+      ).join(' · ')}
+    </div>`;
+
+  // 오행 분포
+  const allElems = [
+    r.연주.stemElem, r.연주.branchElem,
+    r.월주.stemElem, r.월주.branchElem,
+    r.일주.stemElem, r.일주.branchElem,
+    r.시주.stemElem, r.시주.branchElem,
+  ];
+  const counts = {};
+  for (const e of ['木','火','土','金','水']) counts[e] = 0;
+  allElems.forEach(e => counts[e]++);
+  const max = Math.max(...Object.values(counts));
+
+  const elemEl = document.getElementById('r-elements');
+  elemEl.innerHTML = ['木','火','土','金','水'].map(e => `
+    <div class="elem-row">
+      <div class="elem-label">${elemTag(e)}</div>
+      <div class="elem-bar-wrap">
+        <div class="elem-bar" style="width:${max ? counts[e]/max*100 : 0}%;background:${elemColors[e].bar}"></div>
+      </div>
+      <div class="elem-count">${counts[e]}</div>
+    </div>`).join('');
+
+  // ── 신강/신약 ──
+  const sgData = calcSingang(r.stems, r.branches);
+  const sgEl = document.getElementById('r-singang');
+  sgEl.style.display = 'block';
+  sgEl.innerHTML = `
+    <h3>신강/신약 판단 (일간 ${r.일주.stem}${r.일주.stemHangul} · ${sgData.dayElem} 기준)</h3>
+    <div class="sg-result">
+      <span class="sg-badge ${sgData.resultClass}">${sgData.result}</span>
+    </div>
+    <div class="sg-bar-section">
+      <div class="sg-bar-labels">
+        <span class="help">생조 (비겁·인성) ${sgData.helpScore}점 (${sgData.helpPct}%)</span>
+        <span class="drain">극설 (식상·재성·관살) ${sgData.drainScore}점 (${sgData.drainPct}%)</span>
+      </div>
+      <div class="sg-bar-track">
+        <div class="sg-bar-help" style="width:${sgData.helpPct}%"></div>
+        <div class="sg-bar-drain" style="width:${sgData.drainPct}%"></div>
+      </div>
+    </div>
+    <div class="sg-3check">
+      <div class="sg-check-item">
+        <div class="label">득령 (得令)</div>
+        <div class="value ${sgData.deukryeong ? 'yes' : 'no'}">${sgData.deukryeong ? 'O' : 'X'}</div>
+        <div class="sub">월지 지원</div>
+      </div>
+      <div class="sg-check-item">
+        <div class="label">득지 (得地)</div>
+        <div class="value ${sgData.deukji ? 'yes' : 'no'}">${sgData.deukji ? 'O' : 'X'}</div>
+        <div class="sub">${sgData.tonggeunPillars.length > 0 ? sgData.tonggeunPillars.join('·') : '통근 없음'}</div>
+      </div>
+      <div class="sg-check-item">
+        <div class="label">득세 (得勢)</div>
+        <div class="value ${sgData.deukse ? 'yes' : 'no'}">${sgData.deukse ? 'O' : 'X'}</div>
+        <div class="sub">${sgData.helpStems.length > 0 ? sgData.helpStems.join('·') : '천간 지원 없음'}</div>
+      </div>
+    </div>
+    <table class="sg-detail-table">
+      <thead>
+        <tr><th>위치</th><th>글자</th><th>십성</th><th>분류</th><th>가중치</th><th>판정</th></tr>
+      </thead>
+      <tbody>
+        ${sgData.details.map(d => `
+          <tr>
+            <td>${d.position}</td>
+            <td>${d.char}</td>
+            <td>${d.god}</td>
+            <td>${d.cat}</td>
+            <td>${d.weight}</td>
+            <td class="${d.isHelp ? 'help-cell' : 'drain-cell'}">${d.isHelp ? '+생조' : '-극설'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="sg-yongsin">
+      <div class="title">용신(用神) 방향</div>
+      ${sgData.yongsinDir}
+    </div>`;
+
+  // ── 대운 ──
+  // stems: [ys, ms, ds, hs], branches: [yb, mb, db, hb]
+  const gender = document.querySelector('input[name="gender"]:checked').value;
+  const daeunData = calcDaeun(
+    new Date(y, mo - 1, d, actualH, actualMn),
+    r.stems[0],    // yearStem (ys)
+    r.stems[1],    // monthStem (ms)
+    r.branches[1], // monthBranch (mb)
+    gender
+  );
+
+  const currentYear = new Date().getFullYear();
+  const currentAge = currentYear - y;
+  // 현재 대운 찾기
+  let currentDaeunIdx = -1;
+  for (let i = 0; i < daeunData.dauns.length; i++) {
+    if (currentAge >= daeunData.dauns[i].startAge && currentAge <= daeunData.dauns[i].endAge) {
+      currentDaeunIdx = i; break;
+    }
+  }
+
+  const daeunEl = document.getElementById('r-daeun');
+  daeunEl.style.display = 'block';
+  daeunEl.innerHTML = `
+    <h3>대운</h3>
+    <div class="fortune-header">
+      대운수: ${daeunData.daeunAge}세  (${daeunData.monthHanja} ${daeunData.monthHangul} 기준, ${daeunData.forward ? '순행' : '역행'})
+    </div>
+    <div class="daeun-scroll">
+      ${daeunData.dauns.map((d, i) => `
+        <div class="daeun-item ${i === currentDaeunIdx ? 'active' : ''}">
+          <div class="age">${d.startAge}~${d.endAge}세</div>
+          <div class="hanja">${colorHanja(d.stem, d.branch)}</div>
+          <div class="hangul">${colorHangul(d.stem, d.branch)}</div>
+          <div class="years">${d.startYear}~${d.endYear}</div>
+        </div>`).join('')}
+    </div>`;
+
+  // ── 연운 (세운) ──
+  const yeounEl = document.getElementById('r-yeoun');
+  yeounEl.style.display = 'block';
+  const startYr = currentYear - 2;
+  const yearItems = [];
+  for (let yr = startYr; yr <= startYr + 9; yr++) {
+    const yp = getYearPillar(yr);
+    yearItems.push(`
+      <div class="yeoun-item ${yr === currentYear ? 'active' : ''}">
+        <div class="yr">${yr}</div>
+        <div class="hanja">${colorHanja(yp.stem, yp.branch)}</div>
+        <div class="hangul">${colorHangul(yp.stem, yp.branch)}</div>
+        <div class="age-label">${yr - y}세</div>
+      </div>`);
+  }
+  yeounEl.innerHTML = `
+    <h3>연운 (세운)</h3>
+    <div class="yeoun-grid">${yearItems.join('')}</div>`;
+
+  // ── 월운 ──
+  const wolunEl = document.getElementById('r-wolun');
+  wolunEl.style.display = 'block';
+  const monthPillars = getMonthPillarsForYear(currentYear);
+  const currentMonth = new Date().getMonth() + 1;
+  // 절기 순서를 월 순서로 정렬 (소한=1월, 입춘=2월, ...)
+  wolunEl.innerHTML = `
+    <h3>${currentYear}년 월운</h3>
+    <div class="wolun-grid">
+      ${monthPillars.map((mp, i) => `
+        <div class="wolun-item ${mp.month === currentMonth ? 'active' : ''}">
+          <div class="mo">${mp.month}월 ${mp.termName}</div>
+          <div class="hanja">${colorHanja(mp.stem, mp.branch)}</div>
+          <div class="hangul">${colorHangul(mp.stem, mp.branch)}</div>
+        </div>`).join('')}
+    </div>`;
+
+  // 절기
+  document.getElementById('r-terms-title').textContent = `${y}년 절기`;
+  document.getElementById('r-terms').innerHTML = r.terms.map((t, i) => `
+    <div class="term-item ${i === r.activeTerm ? 'active' : ''}">
+      <div class="term-name">${t.name}</div>
+      <div class="term-date">${t.date}  ${t.month}</div>
+    </div>`).join('');
+
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('downloadMdBtn').style.display = 'inline-block';
+  document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+
+  // 마지막 계산 결과를 전역에 저장 (MD 다운로드용)
+  window._lastSaju = {
+    y, mo, d, h, mn, actualH, actualMn, useSolar, gender,
+    r, daeunData, hchh, unsungResults, sgData, allGods, godCounts, godNames,
+    counts: (() => {
+      const allE = [r.연주.stemElem,r.연주.branchElem,r.월주.stemElem,r.월주.branchElem,
+                    r.일주.stemElem,r.일주.branchElem,r.시주.stemElem,r.시주.branchElem];
+      const c = {}; for (const e of ['木','火','土','金','水']) c[e]=0;
+      allE.forEach(e => c[e]++);
+      return c;
+    })(),
+    currentYear,
+  };
+}
+
+// ══════════════════════════════════════════════════════
+//  MD 다운로드
+// ══════════════════════════════════════════════════════
+function downloadMD() {
+  const s = window._lastSaju;
+  if (!s) return;
+  const { y, mo, d, h, mn, actualH, actualMn, useSolar, gender, r, daeunData, hchh, unsungResults, sgData, godCounts, godNames, counts, currentYear } = s;
+
+  const pad = (n) => String(n).padStart(2, '0');
+  const genderStr = gender === '남' ? '남성' : '여성';
+
+  let md = `# 사주팔자 (四柱八字) 분석 데이터\n\n`;
+
+  // 기본 정보
+  md += `## 기본 정보\n\n`;
+  md += `| 항목 | 값 |\n|---|---|\n`;
+  md += `| 생년월일시 | ${y}년 ${mo}월 ${d}일 ${pad(h)}시 ${pad(mn)}분 |\n`;
+  if (useSolar) {
+    md += `| 진태양시 | ${pad(actualH)}:${pad(actualMn)} |\n`;
+  }
+  md += `| 성별 | ${genderStr} |\n`;
+  md += `| 띠 | ${r.띠} |\n\n`;
+
+  // 사주 4기둥
+  md += `## 사주 四柱 (시주→일주→월주→연주)\n\n`;
+  md += `| | 시주 (時柱) | 일주 (日柱) | 월주 (月柱) | 연주 (年柱) |\n`;
+  md += `|---|---|---|---|---|\n`;
+  md += `| 천간 (天干) | ${r.시주.stem} ${r.시주.stemHangul} | ${r.일주.stem} ${r.일주.stemHangul} | ${r.월주.stem} ${r.월주.stemHangul} | ${r.연주.stem} ${r.연주.stemHangul} |\n`;
+  md += `| 지지 (地支) | ${r.시주.branch} ${r.시주.branchHangul} | ${r.일주.branch} ${r.일주.branchHangul} | ${r.월주.branch} ${r.월주.branchHangul} | ${r.연주.branch} ${r.연주.branchHangul} |\n`;
+  md += `| 천간 오행 | ${r.시주.stemElem} | ${r.일주.stemElem} | ${r.월주.stemElem} | ${r.연주.stemElem} |\n`;
+  md += `| 지지 오행 | ${r.시주.branchElem} | ${r.일주.branchElem} | ${r.월주.branchElem} | ${r.연주.branchElem} |\n`;
+  md += `| 천간 십성 | ${r.tenGods.시간} | ${r.tenGods.일간} (일원) | ${r.tenGods.월간} | ${r.tenGods.연간} |\n`;
+  md += `| 지지 십성 | ${r.tenGods.시지} | ${r.tenGods.일지} | ${r.tenGods.월지} | ${r.tenGods.연지} |\n\n`;
+
+  // 일간 정보
+  md += `> **일간(日干)**: ${r.일주.stem}(${r.일주.stemHangul}), 오행: ${r.일주.stemElem}, 음양: ${음양[r.stems[2]]}\n\n`;
+
+  // 지장간
+  md += `## 지장간 (地藏干)\n\n`;
+  const jjPillars = [
+    { name: '시주', bIdx: r.branches[3] },
+    { name: '일주', bIdx: r.branches[2] },
+    { name: '월주', bIdx: r.branches[1] },
+    { name: '연주', bIdx: r.branches[0] },
+  ];
+  md += `| 기둥 | 지지 | 여기 | 중기 | 정기 |\n|---|---|---|---|---|\n`;
+  jjPillars.forEach(p => {
+    const jj = getJijanggan(p.bIdx, r.stems[2]);
+    const findByLabel = (lbl) => jj.find(j => j.label === lbl);
+    const fmt = (lbl) => {
+      const j = findByLabel(lbl);
+      return j ? `${j.stem}(${j.hangul}) ${j.god}` : '—';
+    };
+    md += `| ${p.name} | ${지지[p.bIdx]}(${지지_한글[p.bIdx]}) | ${fmt('여기')} | ${fmt('중기')} | ${fmt('정기')} |\n`;
+  });
+  md += `\n`;
+
+  // 공망
+  const gm = r.gongmang;
+  md += `## 공망 (空亡)\n\n`;
+  md += `- 순(旬): ${gm.xunName}旬\n`;
+  md += `- 공망 지지: ${gm.chars[0]}(${gm.hangul[0]}), ${gm.chars[1]}(${gm.hangul[1]})\n`;
+  md += `- 해당 기둥: ${gm.affected.length > 0 ? gm.affected.join(', ') : '없음'}\n\n`;
+
+  // 십성 분포
+  md += `## 십성 분포\n\n`;
+  md += `| 십성 | 개수 |\n|---|---|\n`;
+  godNames.forEach(g => {
+    if (godCounts[g] > 0) md += `| ${g} | ${godCounts[g]} |\n`;
+  });
+  md += `\n`;
+
+  // 오행 분포
+  md += `## 오행 분포 (8자 기준)\n\n`;
+  md += `| 오행 | 개수 |\n|---|---|\n`;
+  for (const e of ['木','火','土','金','水']) {
+    md += `| ${e} | ${counts[e]} |\n`;
+  }
+  md += `\n`;
+
+  // 12운성
+  md += `## 12운성 (일간 ${r.일주.stem}${r.일주.stemHangul} 기준)\n\n`;
+  md += `| 기둥 | 지지 | 12운성 | 강약 |\n|---|---|---|---|\n`;
+  unsungResults.forEach(u => {
+    const cls = unsungClass(u.unsung);
+    const label = cls === 'strong' ? '강' : cls === 'weak' ? '약' : '중';
+    md += `| ${u.label} | ${u.branchChar}(${u.branchHangul}) | ${u.unsung} | ${label} |\n`;
+  });
+  md += `\n`;
+
+  // 신살
+  md += `## 신살 (神殺)\n\n`;
+  const activeShinsal = r.shinsal.filter(ss => ss.pillars.some(Boolean));
+  if (activeShinsal.length > 0) {
+    md += `| 신살 | 유형 | 시주 | 일주 | 월주 | 연주 | 설명 |\n`;
+    md += `|---|---|---|---|---|---|---|\n`;
+    activeShinsal.forEach(ss => {
+      const typeLabel = ss.type === 'good' ? '길성' : ss.type === 'bad' ? '흉성' : '중성';
+      const marks = ss.pillars.map(p => p ? 'O' : '-').join(' | ');
+      md += `| ${ss.name} | ${typeLabel} | ${marks} | ${ss.desc} |\n`;
+    });
+  } else {
+    md += `해당 신살 없음\n`;
+  }
+  md += `\n`;
+
+  // 형충회합
+  md += `## 형충회합 (刑沖會合)\n\n`;
+  if (hchh.length > 0) {
+    md += `| 유형 | 세부 | 글자 | 설명 |\n|---|---|---|---|\n`;
+    hchh.forEach(h => {
+      md += `| ${h.type} | ${h.subtype} | ${h.chars} | ${h.desc} |\n`;
+    });
+  } else {
+    md += `사주 내 형충회합 없음\n`;
+  }
+  md += `\n`;
+
+  // 신강/신약
+  md += `## 신강/신약 판단 (일간 ${r.일주.stem}${r.일주.stemHangul} · ${sgData.dayElem})\n\n`;
+  md += `| 항목 | 결과 |\n|---|---|\n`;
+  md += `| **판정** | **${sgData.result}** |\n`;
+  md += `| 생조 점수 | ${sgData.helpScore}점 (${sgData.helpPct}%) |\n`;
+  md += `| 극설 점수 | ${sgData.drainScore}점 (${sgData.drainPct}%) |\n`;
+  md += `| 득령 (得令) | ${sgData.deukryeong ? 'O' : 'X'} |\n`;
+  md += `| 득지 (得地) | ${sgData.deukji ? 'O' : 'X'} (${sgData.tonggeunPillars.join('·') || '없음'}) |\n`;
+  md += `| 득세 (得勢) | ${sgData.deukse ? 'O' : 'X'} (${sgData.helpStems.join('·') || '없음'}) |\n`;
+  md += `| 용신 방향 | ${sgData.yongsinDir} |\n\n`;
+  md += `### 세부 판정\n\n`;
+  md += `| 위치 | 글자 | 십성 | 분류 | 가중치 | 판정 |\n|---|---|---|---|---|---|\n`;
+  sgData.details.forEach(d => {
+    md += `| ${d.position} | ${d.char} | ${d.god} | ${d.cat} | ${d.weight} | ${d.isHelp ? '+생조' : '-극설'} |\n`;
+  });
+  md += `\n`;
+
+  // 대운
+  md += `## 대운 (大運)\n\n`;
+  md += `- 대운수: ${daeunData.daeunAge}세\n`;
+  md += `- 기준: ${daeunData.monthHanja}(${daeunData.monthHangul})\n`;
+  md += `- 방향: ${daeunData.forward ? '순행' : '역행'}\n\n`;
+  md += `| 나이 | 간지 | 한글 | 기간 |\n|---|---|---|---|\n`;
+  daeunData.dauns.forEach(du => {
+    md += `| ${du.startAge}~${du.endAge}세 | ${du.hanja} | ${du.hangul} | ${du.startYear}~${du.endYear} |\n`;
+  });
+  md += `\n`;
+
+  // 연운
+  md += `## 연운 (세운) — ${currentYear}년 전후\n\n`;
+  md += `| 연도 | 간지 | 한글 | 나이 |\n|---|---|---|---|\n`;
+  const startYr = currentYear - 2;
+  for (let yr = startYr; yr <= startYr + 9; yr++) {
+    const yp = getYearPillar(yr);
+    const marker = yr === currentYear ? ' ← 현재' : '';
+    md += `| ${yr} | ${yp.hanja} | ${yp.hangul} | ${yr - y}세${marker} |\n`;
+  }
+  md += `\n`;
+
+  // 월운
+  md += `## ${currentYear}년 월운\n\n`;
+  const monthPillars = getMonthPillarsForYear(currentYear);
+  md += `| 월 | 절기 | 간지 | 한글 |\n|---|---|---|---|\n`;
+  monthPillars.forEach(mp => {
+    md += `| ${mp.month}월 | ${mp.termName} | ${천간[mp.stem]}${지지[mp.branch]} | ${천간_한글[mp.stem]}${지지_한글[mp.branch]} |\n`;
+  });
+  md += `\n`;
+
+
+  // 다운로드
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `사주_${y}${pad(mo)}${pad(d)}_${pad(h)}${pad(mn)}_${genderStr}.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// 도시 선택 → 직접입력 토글
+document.getElementById('city').addEventListener('change', function() {
+  document.getElementById('customLon').style.display = this.value === 'custom' ? 'inline-block' : 'none';
+});
+
+// 진태양시 체크박스 → 도시 선택 영역 토글
+document.getElementById('useSolarTime').addEventListener('change', function() {
+  document.getElementById('cityWrap').style.display = this.checked ? 'flex' : 'none';
+});
+
+// 엔터키 지원
+document.addEventListener('keydown', e => { if (e.key === 'Enter') calculate(); });
+
+// 최초 로딩 시 자동 계산
+window.onload = () => calculate();
+</script>
+</body>
+</html>
