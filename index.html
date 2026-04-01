@@ -9,6 +9,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { overflow-x: hidden; width: 100%; }
 
     body {
       font-family: 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', sans-serif;
@@ -178,7 +179,7 @@
     .solar-info .highlight { color: #f0d080; font-size: .95rem; }
 
     /* 결과 */
-    #result { width: 100%; max-width: 640px; display: none; }
+    #result { width: 100%; max-width: 640px; display: none; overflow-x: hidden; }
 
     .result-header {
       text-align: center;
@@ -494,6 +495,7 @@
       border-radius: 14px;
       padding: 18px 20px;
       margin-bottom: 24px;
+      overflow-x: hidden;
     }
     .fortune-card h3 {
       font-size: .85rem;
@@ -604,6 +606,8 @@
       justify-content: space-between;
       font-size: .75rem;
       margin-bottom: 4px;
+      flex-wrap: wrap;
+      gap: 2px;
     }
     .sg-bar-labels .help { color: #7ae0a0; }
     .sg-bar-labels .drain { color: #f08080; }
@@ -932,6 +936,16 @@
       .daeun-scroll { grid-template-columns: repeat(4, 1fr); }
       .yeoun-grid { grid-template-columns: repeat(5, 1fr); }
       .wolun-grid { grid-template-columns: repeat(4, 1fr); }
+      .sg-detail-table { font-size: .65rem; }
+      .sg-detail-table th, .sg-detail-table td { padding: 4px 2px; }
+      .sg-bar-labels { font-size: .65rem; }
+      .hchh-grid { gap: 5px; }
+      .hchh-tag { font-size: .72rem; padding: 5px 8px; }
+      .shinsal-table { font-size: .72rem; }
+      .gongmang-summary { font-size: .75rem; gap: 8px; }
+      .sipsung-grid { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+      .unsung-grid { grid-template-columns: repeat(2, 1fr); }
+      .sg-3check { grid-template-columns: repeat(3, 1fr); gap: 4px; }
     }
   </style>
 </head>
