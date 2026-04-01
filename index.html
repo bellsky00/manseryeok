@@ -965,25 +965,25 @@
   <div class="form-grid">
     <div>
       <label>연도</label>
-      <input type="number" id="year"   value="1986" min="1800" max="2100">
+      <input type="number" id="year" min="1800" max="2100">
     </div>
     <div>
       <label>월 (1~12)</label>
-      <input type="number" id="month"  value="12" min="1" max="12">
+      <input type="number" id="month" min="1" max="12">
     </div>
     <div>
       <label>일 (1~31)</label>
-      <input type="number" id="day"    value="26" min="1" max="31">
+      <input type="number" id="day" min="1" max="31">
     </div>
   </div>
   <div class="form-grid-2">
     <div>
       <label>시 (0~23)</label>
-      <input type="number" id="hour"   value="19" min="0" max="23">
+      <input type="number" id="hour" min="0" max="23">
     </div>
     <div>
       <label>분 (0~59)</label>
-      <input type="number" id="minute" value="2" min="0" max="59">
+      <input type="number" id="minute" min="0" max="59">
     </div>
   </div>
   <div class="form-grid-2" style="margin-bottom:12px">
@@ -2960,8 +2960,16 @@ function deleteSaju(docId) {
     .catch(err => alert('삭제 실패: ' + err.message));
 }
 
-// 최초 로딩 시 자동 계산
-window.onload = () => calculate();
+// 최초 로딩 시 오늘 날짜 세팅 + 자동 계산
+window.onload = () => {
+  const now = new Date();
+  document.getElementById('year').value = now.getFullYear();
+  document.getElementById('month').value = now.getMonth() + 1;
+  document.getElementById('day').value = now.getDate();
+  document.getElementById('hour').value = now.getHours();
+  document.getElementById('minute').value = now.getMinutes();
+  calculate();
+};
 </script>
 </body>
 </html>
