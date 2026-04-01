@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>만세력 계산기</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -671,6 +674,129 @@
     }
     .sg-yongsin .title { color: #c9a96e; font-weight: bold; margin-bottom: 4px; }
 
+    /* 사용자 / 저장 */
+    .user-bar {
+      width: 100%;
+      max-width: 540px;
+      margin-bottom: 20px;
+    }
+    .login-card {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 18px 20px;
+      text-align: center;
+    }
+    .login-card p { font-size: .82rem; color: #888; margin-bottom: 14px; }
+    .google-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 24px;
+      background: #fff;
+      border: none;
+      border-radius: 8px;
+      color: #333;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: box-shadow .2s;
+      width: auto;
+    }
+    .google-btn:hover { box-shadow: 0 2px 12px rgba(255,255,255,.15); }
+    .google-btn img { width: 20px; height: 20px; }
+    .logged-in-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 12px 20px;
+    }
+    .logged-in-bar .user-name {
+      color: #c9a96e;
+      font-weight: bold;
+      font-size: .95rem;
+    }
+    .logged-in-bar .logout-btn {
+      width: auto;
+      padding: 6px 14px;
+      font-size: .75rem;
+      background: #2a3560;
+      border: 1px solid #3a4570;
+      color: #aaa;
+    }
+    .logged-in-bar .logout-btn:hover { color: #f08080; border-color: #f08080; }
+
+    .save-section {
+      margin-top: 20px;
+      margin-bottom: 24px;
+    }
+    .save-row {
+      display: flex;
+      gap: 8px;
+    }
+    .save-row input {
+      flex: 1;
+      padding: 10px 14px;
+      background: #0f1e3d;
+      border: 1px solid #2a3560;
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-size: .85rem;
+    }
+    .save-row button {
+      width: auto;
+      padding: 10px 18px;
+      font-size: .85rem;
+      white-space: nowrap;
+    }
+
+    .saved-list-card {
+      background: #16213e;
+      border: 1px solid #2a3560;
+      border-radius: 14px;
+      padding: 18px 20px;
+      width: 100%;
+      max-width: 540px;
+      margin-bottom: 24px;
+    }
+    .saved-list-card h3 {
+      font-size: .85rem;
+      color: #888;
+      margin-bottom: 14px;
+      letter-spacing: .1em;
+    }
+    .saved-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: #0f1e3d;
+      border: 1px solid #1a2545;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: border-color .2s;
+    }
+    .saved-item:hover { border-color: #c9a96e; }
+    .saved-item .si-info { flex: 1; }
+    .saved-item .si-name { font-size: .9rem; font-weight: bold; color: #e0e0e0; }
+    .saved-item .si-detail { font-size: .7rem; color: #888; margin-top: 2px; }
+    .saved-item .si-delete {
+      width: auto;
+      padding: 4px 10px;
+      font-size: .7rem;
+      background: transparent;
+      border: 1px solid #4a2a2a;
+      color: #f08080;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .saved-item .si-delete:hover { background: #3a1a1a; }
+    .saved-empty { font-size: .8rem; color: #555; padding: 10px 0; }
+
     /* 다운로드 버튼 */
     .download-btn {
       background: linear-gradient(135deg, #2a3560, #1a2545);
@@ -811,6 +937,27 @@
 <h1>萬歲曆</h1>
 <p class="subtitle">생년월일시를 입력하면 사주팔자를 계산합니다</p>
 
+<!-- 로그인 / 사용자 바 -->
+<div class="user-bar" id="authArea">
+  <div class="login-card" id="loginCard">
+    <p>로그인하면 사주를 저장하고 불러올 수 있습니다</p>
+    <button class="google-btn" onclick="googleLogin()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+      Google로 로그인
+    </button>
+  </div>
+  <div class="logged-in-bar" id="loggedInBar" style="display:none">
+    <span class="user-name" id="userName"></span>
+    <button class="logout-btn" onclick="googleLogout()">로그아웃</button>
+  </div>
+</div>
+
+<!-- 저장된 사주 목록 -->
+<div class="saved-list-card" id="savedListCard" style="display:none">
+  <h3>저장된 사주</h3>
+  <div id="savedList"></div>
+</div>
+
 <div class="card">
   <div class="form-grid">
     <div>
@@ -870,6 +1017,12 @@
   <div class="btn-row">
     <button onclick="calculate()">사주 보기</button>
     <button class="download-btn" id="downloadMdBtn" onclick="copyToClipboard()" style="display:none">만세력 클립보드 복사</button>
+  </div>
+  <div class="save-section" id="saveSection" style="display:none">
+    <div class="save-row">
+      <input type="text" id="saveName" placeholder="저장할 이름 (예: 내 사주, 엄마 사주)">
+      <button onclick="saveSaju()">저장</button>
+    </div>
   </div>
 </div>
 
@@ -2666,6 +2819,143 @@ document.getElementById('useSolarTime').addEventListener('change', function() {
 
 // 엔터키 지원
 document.addEventListener('keydown', e => { if (e.key === 'Enter') calculate(); });
+
+// ══════════════════════════════════════════════════════
+//  Firebase 초기화 + 인증 + Firestore
+// ══════════════════════════════════════════════════════
+firebase.initializeApp({
+  apiKey: "AIzaSyAFDYH6YXAYmB-Nq8R5BHUkMjM3qKnrnis",
+  authDomain: "sajumyungli.firebaseapp.com",
+  projectId: "sajumyungli",
+  storageBucket: "sajumyungli.firebasestorage.app",
+  messagingSenderId: "260378933703",
+  appId: "1:260378933703:web:d84b2a0fc6046e1dc741e2",
+});
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+let currentUser = null;
+
+// Google 로그인
+function googleLogin() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(err => {
+    alert('로그인 실패: ' + err.message);
+  });
+}
+
+// 로그아웃
+function googleLogout() {
+  auth.signOut();
+}
+
+// 인증 상태 변경 감지
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  const loginCard = document.getElementById('loginCard');
+  const loggedInBar = document.getElementById('loggedInBar');
+  const savedListCard = document.getElementById('savedListCard');
+  const saveSection = document.getElementById('saveSection');
+
+  if (user) {
+    loginCard.style.display = 'none';
+    loggedInBar.style.display = 'flex';
+    document.getElementById('userName').textContent = user.displayName + '님';
+    savedListCard.style.display = 'block';
+    saveSection.style.display = 'block';
+    loadSavedList();
+  } else {
+    loginCard.style.display = 'block';
+    loggedInBar.style.display = 'none';
+    savedListCard.style.display = 'none';
+    saveSection.style.display = 'none';
+  }
+});
+
+// 사주 저장
+function saveSaju() {
+  if (!currentUser) return alert('로그인이 필요합니다.');
+  const name = document.getElementById('saveName').value.trim();
+  if (!name) return alert('저장할 이름을 입력해주세요.');
+
+  const data = {
+    name,
+    year: parseInt(document.getElementById('year').value),
+    month: parseInt(document.getElementById('month').value),
+    day: parseInt(document.getElementById('day').value),
+    hour: parseInt(document.getElementById('hour').value),
+    minute: parseInt(document.getElementById('minute').value),
+    gender: document.querySelector('input[name="gender"]:checked').value,
+    useSolarTime: document.getElementById('useSolarTime').checked,
+    city: document.getElementById('city').value,
+    savedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  };
+
+  db.collection('users').doc(currentUser.uid).collection('sajus').add(data)
+    .then(() => {
+      document.getElementById('saveName').value = '';
+      loadSavedList();
+    })
+    .catch(err => alert('저장 실패: ' + err.message));
+}
+
+// 저장 목록 불러오기
+function loadSavedList() {
+  if (!currentUser) return;
+  const listEl = document.getElementById('savedList');
+
+  db.collection('users').doc(currentUser.uid).collection('sajus')
+    .orderBy('savedAt', 'desc')
+    .get()
+    .then(snapshot => {
+      if (snapshot.empty) {
+        listEl.innerHTML = '<div class="saved-empty">저장된 사주가 없습니다.</div>';
+        return;
+      }
+      listEl.innerHTML = snapshot.docs.map(doc => {
+        const d = doc.data();
+        const pad = n => String(n).padStart(2, '0');
+        const gStr = d.gender === '남' ? '남' : '여';
+        return `
+          <div class="saved-item" onclick="loadSaju('${doc.id}')">
+            <div class="si-info">
+              <div class="si-name">${d.name}</div>
+              <div class="si-detail">${d.year}.${pad(d.month)}.${pad(d.day)} ${pad(d.hour)}:${pad(d.minute)} ${gStr}</div>
+            </div>
+            <button class="si-delete" onclick="event.stopPropagation(); deleteSaju('${doc.id}')">삭제</button>
+          </div>`;
+      }).join('');
+    });
+}
+
+// 저장된 사주 불러오기
+function loadSaju(docId) {
+  if (!currentUser) return;
+  db.collection('users').doc(currentUser.uid).collection('sajus').doc(docId).get()
+    .then(doc => {
+      if (!doc.exists) return;
+      const d = doc.data();
+      document.getElementById('year').value = d.year;
+      document.getElementById('month').value = d.month;
+      document.getElementById('day').value = d.day;
+      document.getElementById('hour').value = d.hour;
+      document.getElementById('minute').value = d.minute;
+      document.querySelector(`input[name="gender"][value="${d.gender}"]`).checked = true;
+      document.getElementById('useSolarTime').checked = d.useSolarTime;
+      document.getElementById('cityWrap').style.display = d.useSolarTime ? 'flex' : 'none';
+      if (d.city) document.getElementById('city').value = d.city;
+      calculate();
+    });
+}
+
+// 사주 삭제
+function deleteSaju(docId) {
+  if (!currentUser) return;
+  if (!confirm('삭제하시겠습니까?')) return;
+  db.collection('users').doc(currentUser.uid).collection('sajus').doc(docId).delete()
+    .then(() => loadSavedList())
+    .catch(err => alert('삭제 실패: ' + err.message));
+}
 
 // 최초 로딩 시 자동 계산
 window.onload = () => calculate();
