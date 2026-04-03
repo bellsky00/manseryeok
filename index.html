@@ -3139,7 +3139,7 @@ function calcWealth(ip) {
   let s2Adj=s2.s;
   if(ip.balance==='singang'&&!ip.hasJaesung) s2Adj=Math.round(s2.s*.5*10)/10;
   const rawTotal=cross.s1Adj+s2Adj+s3.s+s4.s+s5.s+cross.extra;
-  const clamped=Math.max(0,Math.round(rawTotal*10)/10);
+  const clamped=Math.max(0,Math.round(rawTotal));
   return {
     stages:[{...s1,adj:cross.s1Adj},{...s2,adj:s2Adj},s3,s4,s5],
     cross, rawTotal:Math.round(rawTotal*10)/10, clamped,
