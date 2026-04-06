@@ -150,25 +150,35 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
-      background: #1E293B;
-      border: 1px solid #334155;
-      border-radius: 10px;
-      margin-top: 4px;
+      padding: 10px 0;
+      border-top: 1px solid #1E293B;
+      margin-top: 20px;
       user-select: none;
     }
-    .inputs-toggle-label { font-size: 13px; font-weight: 600; color: #E2E8F0; }
+    .inputs-toggle-label { font-size: 12px; font-weight: 600; color: #64748B; letter-spacing: 1px; }
     .inputs-body {
       display: none;
-      margin-top: 4px;
-      padding: 14px 16px;
-      background: #0F172A;
-      border: 1px solid #1E293B;
-      border-radius: 10px;
+      padding: 10px 0 4px;
       font-size: 12px;
       color: #94A3B8;
-      line-height: 1.9;
+      line-height: 2;
     }
+    .inputs-body .ip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 16px;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(30,41,59,.5);
+    }
+    .inputs-body .ip-row:last-child { border-bottom: none; }
+    .ip-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11.5px;
+      color: #64748B;
+    }
+    .ip-tag b { color: #CBD5E1; font-weight: 600; }
 
     /* 총점 배너 */
     .total-banner {
@@ -221,6 +231,7 @@ function render(data) {
   const { ip, res, meta } = data;
   const tc = WEALTH_TIER_COLORS[res.percentile.level] || '#6B7280';
   const pad = n => String(n).padStart(2,'0');
+  const fmt = n => { const r = Math.round(n*10)/10; return Number.isInteger(r) ? String(r) : r.toFixed(1); };
 
   let html = '';
 
@@ -242,7 +253,7 @@ function render(data) {
         stroke-linecap="round" stroke-dasharray="${dash} ${circ}"
         transform="rotate(-90 100 100)" style="transition:stroke-dasharray 1.2s"/>
       <text x="100" y="90" text-anchor="middle" fill="#F1F5F9" style="font-size:38px;font-weight:800;font-family:monospace">${res.displayScore}</text>
-      <text x="100" y="112" text-anchor="middle" fill="#64748B" style="font-size:11px">원점수 ${res.clamped}</text>
+      <text x="100" y="112" text-anchor="middle" fill="#64748B" style="font-size:11px">원점수 ${fmt(res.rawTotal)}</text>
       <text x="100" y="132" text-anchor="middle" fill="${tc}" style="font-size:13px;font-weight:700">${res.percentile.range}</text>
     </svg>
     <div class="tier-badge" style="background:${tc}22;border:1px solid ${tc}55;color:${tc}">${res.percentile.tier}</div>
@@ -257,7 +268,7 @@ function render(data) {
     html += `<div class="w-score-bar-wrap">
       <div class="w-score-bar-label">
         <span style="color:#CBD5E1;font-weight:500">${st.label}</span>
-        <span style="color:${st.color};font-weight:700;font-family:monospace">${disp > 0 ? '+' : ''}${disp}점${st.adj !== undefined && st.adj !== st.s ? `<span style="color:#94A3B8;font-size:11px;margin-left:4px">(원래 ${st.s})</span>` : ''}</span>
+        <span style="color:${st.color};font-weight:700;font-family:monospace">${disp > 0 ? '+' : ''}${fmt(disp)}점${st.adj !== undefined && st.adj !== st.s ? `<span style="color:#94A3B8;font-size:11px;margin-left:4px">(원래 ${fmt(st.s)})</span>` : ''}</span>
       </div>
       <div class="w-score-bar-track">
         <div class="w-score-bar-fill" style="width:${p}%;background:${st.color}"></div>
@@ -267,7 +278,7 @@ function render(data) {
       for (const it of st.items) {
         html += `<div class="stage-item-row">
           <span>${it.l}</span>
-          <span style="color:${it.v >= 0 ? '#4ADE80' : '#F87171'};font-family:monospace">${it.v > 0 ? '+' : ''}${it.v}</span>
+          <span style="color:${it.v >= 0 ? '#4ADE80' : '#F87171'};font-family:monospace">${it.v > 0 ? '+' : ''}${fmt(it.v)}</span>
         </div>`;
       }
       html += `</div>`;
@@ -285,7 +296,7 @@ function render(data) {
       if (c.v === null || c.v === undefined) continue;
       html += `<div class="w-cross-item" style="background:${c.v < 0 ? 'rgba(239,68,68,.08)' : 'rgba(34,197,94,.08)'}">
         <span style="color:#CBD5E1">${c.l}</span>
-        <span style="color:${c.v < 0 ? '#F87171' : '#4ADE80'};font-family:monospace;font-weight:600">${c.v > 0 ? '+' : ''}${c.v}</span>
+        <span style="color:${c.v < 0 ? '#F87171' : '#4ADE80'};font-family:monospace;font-weight:600">${c.v > 0 ? '+' : ''}${fmt(c.v)}</span>
       </div>`;
     }
     html += `</div>`;
@@ -295,34 +306,37 @@ function render(data) {
   html += `<div class="total-banner">
     <div style="font-size:14px;color:#94A3B8;margin-bottom:6px">총점 계산</div>
     <div style="font-size:28px;font-weight:800;color:${tc};font-family:monospace">${res.displayScore}점</div>
-    <div class="total-raw">원점수 ${res.rawTotal} → 클램핑 ${res.clamped} → 표시점수 ${res.displayScore}</div>
+    <div class="total-raw">원점수 ${fmt(res.rawTotal)} → 표시점수 ${res.displayScore}</div>
   </div>`;
 
-  // 자동 추출 입력값
-  const boolStr = v => v ? '<span style="color:#4ADE80">✓</span>' : '<span style="color:#475569">✗</span>';
-  const inputLines = [
-    `재성 있음: ${boolStr(ip.hasJaesung)} / 위치: <b>${ip.jaesungPos||'-'}</b> / 종류: <b>${ip.jaesungType==='jeongjae'?'정재':ip.jaesungType==='pyeonjae'?'편재':'-'}</b> / 개수: <b>${ip.jaesungCount}</b>`,
-    `재성=용신: ${boolStr(ip.jaesungIsYongsin)} / 재성=기신: ${boolStr(ip.jaesungIsGisin)}`,
-    `식상 있음: ${boolStr(ip.hasSiksangwan)} (<b>${ip.siksangwanType==='siksin'?'식신':ip.siksangwanType==='sanggwan'?'상관':'-'}</b>) / 재성 합: ${boolStr(ip.jaesungHap)}`,
-    `신강/신약: <b>${ip.balance==='singang'?'신강':ip.balance==='sinyak'?'신약':'중화'}</b>`,
-    `비겁수: <b>${ip.bigyeobCount}</b> / 인성수: <b>${ip.insungCount}</b> / 재성충: ${boolStr(ip.jaesungChung)}`,
-    `편관: ${boolStr(ip.hasPyeongwan)} (<b>${ip.pyeongwanPos||'-'}</b>)`,
-    `대운재성: ${boolStr(ip.daeunJaesung)} / 대운관살: ${boolStr(ip.daeunGwansal)} / 대운세운합: ${boolStr(ip.daeunSeunHap)}`,
-    `세운재성: ${boolStr(ip.seunJaesung)} / 세운관살: ${boolStr(ip.seunGwansal)}`,
-    `공망(재성기둥): ${boolStr(ip.gongmang)} / 원진살: ${boolStr(ip.wonjinsal)} / 도화살: ${boolStr(ip.dowhaSal)} / 역마살: ${boolStr(ip.yeokmaSal)}`,
-    `역마+공망: ${boolStr(ip.yeokmaGongmang)} / 역마+재성동주: ${boolStr(ip.yeokmaJaesungDongju)}`,
-    `도화+편재동주: ${boolStr(ip.dowhaByeonjaeDonju)} / 도화+정재동주: ${boolStr(ip.dowhaJeongjaeDonju)}`,
-    `원진+재성동주: ${boolStr(ip.wonjinJaesungDongju)} / 역마+편관동주: ${boolStr(ip.yeokmaPyeongwanDongju)}`,
-    `삼합+재성: ${boolStr(ip.samhapJaesung)} / 삼형+재성동주: ${boolStr(ip.samhyeongJaesung)}`,
+  // 자동 추출 입력값 (깔끔한 태그 형태)
+  const ok = v => v ? '<span style="color:#4ADE80">✓</span>' : '<span style="color:#334155">—</span>';
+  const tag = (label, val) => `<span class="ip-tag">${label} ${val}</span>`;
+  const bTag = (label, v) => tag(label, v ? '<span style="color:#4ADE80">✓</span>' : '<span style="color:#334155">—</span>');
+
+  const inputRows = [
+    [tag('재성', ok(ip.hasJaesung)),
+     tag('위치', `<b>${ip.jaesungPos||'—'}</b>`),
+     tag('종류', `<b>${ip.jaesungType==='jeongjae'?'정재':ip.jaesungType==='pyeonjae'?'편재':'—'}</b>`),
+     tag('개수', `<b>${ip.jaesungCount}</b>`)],
+    [bTag('용신', ip.jaesungIsYongsin), bTag('기신', ip.jaesungIsGisin),
+     tag('신강/약', `<b>${ip.balance==='singang'?'신강':ip.balance==='sinyak'?'신약':'중화'}</b>`)],
+    [tag('식상', `${ok(ip.hasSiksangwan)} <b>${ip.siksangwanType==='siksin'?'식신':ip.siksangwanType==='sanggwan'?'상관':'—'}</b>`),
+     bTag('재성합', ip.jaesungHap), bTag('재성충', ip.jaesungChung)],
+    [tag('비겁', `<b>${ip.bigyeobCount}</b>`), tag('인성', `<b>${ip.insungCount}</b>`),
+     tag('편관', `${ok(ip.hasPyeongwan)} <b>${ip.pyeongwanPos||'—'}</b>`)],
+    [bTag('대운재성', ip.daeunJaesung), bTag('대운관살', ip.daeunGwansal), bTag('대운세운합', ip.daeunSeunHap)],
+    [bTag('세운재성', ip.seunJaesung), bTag('세운관살', ip.seunGwansal)],
+    [bTag('공망', ip.gongmang), bTag('원진살', ip.wonjinsal), bTag('도화살', ip.dowhaSal), bTag('역마살', ip.yeokmaSal)],
+    [bTag('역마+공망', ip.yeokmaGongmang), bTag('역마+재성', ip.yeokmaJaesungDongju),
+     bTag('삼합+재성', ip.samhapJaesung), bTag('삼형+재성', ip.samhyeongJaesung)],
   ];
 
-  html += `<div class="card" style="padding:0">
-    <div class="inputs-toggle" onclick="toggleInputs(this)">
-      <span class="inputs-toggle-label">자동 추출된 입력값 보기</span>
-      <span style="color:#64748B;font-size:16px">▾</span>
-    </div>
-    <div class="inputs-body">${inputLines.map(l=>`<div>${l}</div>`).join('')}</div>
-  </div>`;
+  html += `<div class="inputs-toggle" onclick="toggleInputs(this)">
+    <span class="inputs-toggle-label">자동 추출 입력값</span>
+    <span style="color:#475569;font-size:14px">▾</span>
+  </div>
+  <div class="inputs-body">${inputRows.map(row=>`<div class="ip-row">${row.join('')}</div>`).join('')}</div>`;
 
   document.getElementById('content').innerHTML = html;
 }
