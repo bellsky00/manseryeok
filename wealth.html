@@ -233,6 +233,48 @@ function render(data) {
   const pad = n => String(n).padStart(2,'0');
   const fmt = n => { const r = Math.round(n*10)/10; return Number.isInteger(r) ? String(r) : r.toFixed(1); };
 
+  // ── 보정 점수 계산: 각 항목 점수의 합 = displayScore ──
+  const CAL_MAX = [35, 25, 15, 15, 10]; // 항목별 만점, 합계 100
+  const CAL_LABELS = ['재성 구조', '생조 구조', '방해 요소', '시기 보정', '보정 요소'];
+  const CAL_COLORS = ['#E8B931','#4CAF50','#E53935','#5C6BC0','#AB47BC'];
+
+  // 각 항목의 원점수
+  const rawParts = [
+    res.stages[0].adj !== undefined ? res.stages[0].adj : res.stages[0].s,
+    res.stages[1].adj !== undefined ? res.stages[1].adj : res.stages[1].s,
+    res.stages[2].s,
+    res.stages[3].s,
+    res.stages[4].s + res.cross.extra,
+  ];
+  // 각 항목에 포함될 세부 내역
+  const partItems = [
+    res.stages[0].items || [],
+    res.stages[1].items || [],
+    res.stages[2].items || [],
+    res.stages[3].items || [],
+    [...(res.stages[4].items || []), ...(res.cross.items || [])],
+  ];
+
+  // 음수를 0으로 올려서 비율 분배 (모든 값 >= 0)
+  const minRaw = Math.min(0, ...rawParts);
+  const shifted = rawParts.map(v => v - minRaw);
+  const shiftedSum = shifted.reduce((a,b) => a+b, 0);
+
+  // displayScore를 비율 분배 → 합계 = displayScore 보장
+  const cal = new Array(5).fill(0);
+  if (shiftedSum > 0) {
+    let accum = 0;
+    for (let i = 0; i < 4; i++) {
+      cal[i] = Math.round(shifted[i] / shiftedSum * res.displayScore * 10) / 10;
+      accum += cal[i];
+    }
+    cal[4] = Math.round((res.displayScore - accum) * 10) / 10;
+  } else {
+    const each = Math.round(res.displayScore / 5 * 10) / 10;
+    for (let i = 0; i < 4; i++) cal[i] = each;
+    cal[4] = Math.round((res.displayScore - each * 4) * 10) / 10;
+  }
+
   let html = '';
 
   // 사주 요약
@@ -243,7 +285,7 @@ function render(data) {
     <span>${meta.시주 ? meta.시주.hangul : ''} ${meta.일주 ? meta.일주.hangul : ''} ${meta.월주 ? meta.월주.hangul : ''} ${meta.연주 ? meta.연주.hangul : ''}</span>
   </div>`;
 
-  // 게이지
+  // 게이지 (원점수 숨김)
   const pct = Math.min(100, Math.max(0, res.displayScore));
   const R = 80, circ = 2 * Math.PI * R, dash = (pct / 100) * circ;
   html += `<div class="gauge-wrap">
@@ -252,30 +294,27 @@ function render(data) {
       <circle cx="100" cy="100" r="${R}" fill="none" stroke="${tc}" stroke-width="12"
         stroke-linecap="round" stroke-dasharray="${dash} ${circ}"
         transform="rotate(-90 100 100)" style="transition:stroke-dasharray 1.2s"/>
-      <text x="100" y="90" text-anchor="middle" fill="#F1F5F9" style="font-size:38px;font-weight:800;font-family:monospace">${res.displayScore}</text>
-      <text x="100" y="112" text-anchor="middle" fill="#64748B" style="font-size:11px">원점수 ${fmt(res.rawTotal)}</text>
-      <text x="100" y="132" text-anchor="middle" fill="${tc}" style="font-size:13px;font-weight:700">${res.percentile.range}</text>
+      <text x="100" y="92" text-anchor="middle" fill="#F1F5F9" style="font-size:38px;font-weight:800;font-family:monospace">${res.displayScore}</text>
+      <text x="100" y="130" text-anchor="middle" fill="${tc}" style="font-size:13px;font-weight:700">${res.percentile.range}</text>
     </svg>
     <div class="tier-badge" style="background:${tc}22;border:1px solid ${tc}55;color:${tc}">${res.percentile.tier}</div>
   </div>`;
 
-  // 단계별 점수
-  html += `<div class="card"><div class="card-title">단계별 점수</div>`;
-  for (const st of res.stages) {
-    const disp = st.adj !== undefined ? st.adj : st.s;
-    const rng = (st.max || 35) - (st.min || 0);
-    const p = Math.max(0, Math.min(100, ((disp - (st.min || 0)) / rng) * 100));
+  // ── 재물운 분석 ──
+  html += `<div class="card"><div class="card-title">재물운 분석</div>`;
+  for (let i = 0; i < 5; i++) {
+    const barPct = CAL_MAX[i] > 0 ? Math.max(0, Math.min(100, cal[i] / CAL_MAX[i] * 100)) : 0;
     html += `<div class="w-score-bar-wrap">
       <div class="w-score-bar-label">
-        <span style="color:#CBD5E1;font-weight:500">${st.label}</span>
-        <span style="color:${st.color};font-weight:700;font-family:monospace">${disp > 0 ? '+' : ''}${fmt(disp)}점${st.adj !== undefined && st.adj !== st.s ? `<span style="color:#94A3B8;font-size:11px;margin-left:4px">(원래 ${fmt(st.s)})</span>` : ''}</span>
+        <span style="color:#CBD5E1;font-weight:500">${CAL_LABELS[i]}</span>
+        <span style="color:${CAL_COLORS[i]};font-weight:700;font-family:monospace">${fmt(cal[i])} / ${CAL_MAX[i]}점</span>
       </div>
       <div class="w-score-bar-track">
-        <div class="w-score-bar-fill" style="width:${p}%;background:${st.color}"></div>
+        <div class="w-score-bar-fill" style="width:${barPct}%;background:${CAL_COLORS[i]}"></div>
       </div>`;
-    if (st.items && st.items.length > 0) {
+    if (partItems[i].length > 0) {
       html += `<div class="stage-items">`;
-      for (const it of st.items) {
+      for (const it of partItems[i]) {
         html += `<div class="stage-item-row">
           <span>${it.l}</span>
           <span style="color:${it.v >= 0 ? '#4ADE80' : '#F87171'};font-family:monospace">${it.v > 0 ? '+' : ''}${fmt(it.v)}</span>
@@ -287,29 +326,14 @@ function render(data) {
   }
   html += `</div>`;
 
-  // 교차 조건
-  if (res.cross.items.length > 0) {
-    html += `<div class="card">
-      <div class="card-title">교차 조건</div>
-      <div class="cross-title">${res.cross.items.length}개 발동</div>`;
-    for (const c of res.cross.items) {
-      if (c.v === null || c.v === undefined) continue;
-      html += `<div class="w-cross-item" style="background:${c.v < 0 ? 'rgba(239,68,68,.08)' : 'rgba(34,197,94,.08)'}">
-        <span style="color:#CBD5E1">${c.l}</span>
-        <span style="color:${c.v < 0 ? '#F87171' : '#4ADE80'};font-family:monospace;font-weight:600">${c.v > 0 ? '+' : ''}${fmt(c.v)}</span>
-      </div>`;
-    }
-    html += `</div>`;
-  }
-
-  // 총점 요약
+  // 총점 배너
   html += `<div class="total-banner">
-    <div style="font-size:14px;color:#94A3B8;margin-bottom:6px">총점 계산</div>
+    <div style="font-size:14px;color:#94A3B8;margin-bottom:6px">종합 점수</div>
     <div style="font-size:28px;font-weight:800;color:${tc};font-family:monospace">${res.displayScore}점</div>
-    <div class="total-raw">원점수 ${fmt(res.rawTotal)} → 표시점수 ${res.displayScore}</div>
+    <div style="font-size:12px;color:#475569;margin-top:8px">${CAL_LABELS.map((l,i)=>`${l}(${fmt(cal[i])})`).join(' + ')} = ${res.displayScore}</div>
   </div>`;
 
-  // 자동 추출 입력값 (깔끔한 태그 형태)
+  // 자동 추출 입력값
   const ok = v => v ? '<span style="color:#4ADE80">✓</span>' : '<span style="color:#334155">—</span>';
   const tag = (label, val) => `<span class="ip-tag">${label} ${val}</span>`;
   const bTag = (label, v) => tag(label, v ? '<span style="color:#4ADE80">✓</span>' : '<span style="color:#334155">—</span>');
