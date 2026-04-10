@@ -367,21 +367,21 @@ function getYearPillar(year) {
 // ══ 재물운 엔진 ══════════════════════════════════════════════════════════════
 const WEALTH_CROSS_MULT = {1:1.15,5:1.10,19:1.20,20:0.55};
 
-// v2.3 선형 변환: base 50, rawTotal -20 → 30점, rawTotal 50 → 100점
+// v2.4 선형 변환: base 50, ×0.88 스케일 (100점 문턱 raw≥57, 평균 유지)
 function wRawToDisplay(raw) {
-  return Math.min(100, Math.max(30, Math.round(50 + raw)));
+  return Math.min(100, Math.max(30, Math.round(50 + raw * 0.88)));
 }
 
 function wGetPercentile(d) {
-  if (d>=95) return {range:'상위 1~7%',  tier:'극상위 재물 구조', level:9};
-  if (d>=90) return {range:'상위 8~15%', tier:'재물운 매우 강함', level:8};
-  if (d>=82) return {range:'상위 16~28%',tier:'재물운 강함',      level:7};
-  if (d>=74) return {range:'상위 29~45%',tier:'평균 이상',         level:6};
-  if (d>=63) return {range:'상위 46~68%',tier:'평균',              level:5};
-  if (d>=54) return {range:'상위 69~83%',tier:'평균 이하',         level:4};
-  if (d>=45) return {range:'상위 84~92%',tier:'재물운 약함',       level:3};
-  if (d>=36) return {range:'상위 93~97%',tier:'재물운 매우 약함',  level:2};
-  return {range:'하위 3%',tier:'최하위',level:1};
+  if (d>=98) return {range:'상위 1~5%',  tier:'극상위 재물 구조', level:9};
+  if (d>=91) return {range:'상위 6~10%', tier:'재물운 매우 강함', level:8};
+  if (d>=85) return {range:'상위 11~20%',tier:'재물운 강함',      level:7};
+  if (d>=75) return {range:'상위 21~35%',tier:'평균 이상',         level:6};
+  if (d>=70) return {range:'상위 36~50%',tier:'평균',              level:5};
+  if (d>=63) return {range:'상위 51~65%',tier:'평균 이하',         level:4};
+  if (d>=55) return {range:'상위 66~80%',tier:'재물운 약함',       level:3};
+  if (d>=47) return {range:'상위 81~93%',tier:'재물운 매우 약함',  level:2};
+  return {range:'하위 7%',tier:'최하위',level:1};
 }
 
 // v2.2 가중치 (×1.5 from v2.0)
