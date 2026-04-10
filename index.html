@@ -3019,63 +3019,128 @@ const WEALTH_CROSS_MULT = { 1:1.15, 5:1.10, 19:1.20, 20:0.55 };
 function wRawToDisplay(raw) {
   return Math.min(100, Math.max(30, Math.round(50 + raw * 0.88)));
 }
-// v2.4 백분위 기준 (500명 실측 기반: 극상위5%·매우강함10%·강함20%·평균50%)
+// v2.5 백분위 기준 (500명 실측 기반)
 function wGetPercentile(d) {
-  if (d>=98) return { range:'상위 1~5%',  tier:'극상위 재물 구조', level:9 };
-  if (d>=91) return { range:'상위 6~10%', tier:'재물운 매우 강함', level:8 };
-  if (d>=85) return { range:'상위 11~20%',tier:'재물운 강함',      level:7 };
-  if (d>=75) return { range:'상위 21~35%',tier:'평균 이상',         level:6 };
-  if (d>=70) return { range:'상위 36~50%',tier:'평균',              level:5 };
-  if (d>=63) return { range:'상위 51~65%',tier:'평균 이하',         level:4 };
+  if (d>=97) return { range:'상위 1~5%',  tier:'극상위 재물 구조', level:9 };
+  if (d>=90) return { range:'상위 6~10%', tier:'재물운 매우 강함', level:8 };
+  if (d>=80) return { range:'상위 11~20%',tier:'재물운 강함',      level:7 };
+  if (d>=71) return { range:'상위 21~35%',tier:'평균 이상',         level:6 };
+  if (d>=65) return { range:'상위 36~50%',tier:'평균',              level:5 };
+  if (d>=61) return { range:'상위 51~65%',tier:'평균 이하',         level:4 };
   if (d>=55) return { range:'상위 66~80%',tier:'재물운 약함',       level:3 };
-  if (d>=47) return { range:'상위 81~93%',tier:'재물운 매우 약함',  level:2 };
-  return { range:'하위 7%', tier:'최하위', level:1 };
+  if (d>=49) return { range:'상위 81~90%',tier:'재물운 매우 약함',  level:2 };
+  return { range:'하위 10%', tier:'최하위', level:1 };
 }
 const WEALTH_TIER_COLORS = {9:'#C6930A',8:'#D4A017',7:'#5DA54E',6:'#6AA84F',5:'#6B7280',4:'#9CA3AF',3:'#D97706',2:'#DC2626',1:'#991B1B'};
 
 function wCalcStage1(ip) {
-  // 적천수: 재성 格局 성립 여부가 핵심 — 가중치 실제 기여도 반영
   const items=[]; let s=0;
   if(ip.hasJaesung){
-    items.push({l:'재성 유무',v:12});s+=12;
-    const pm={ilji:11,wolji:8,yeonji:5,siji:5},pl={ilji:'일지',wolji:'월지',yeonji:'연지',siji:'시지'};
+    // 재성 유무: 기신이면 축소
+    const jaeV=ip.jaesungIsGisin?4:12;
+    items.push({l:'재성 유무'+(ip.jaesungIsGisin?' (기신)':''),v:jaeV});s+=jaeV;
+    const pm={ilji:11,wolji:8,yeonji:5,siji:3},pl={ilji:'일지',wolji:'월지',yeonji:'연지',siji:'시지'};
     if(ip.jaesungPos&&pm[ip.jaesungPos]){const v=pm[ip.jaesungPos];items.push({l:`재성 위치(${pl[ip.jaesungPos]})`,v});s+=v;}
     if(ip.jaesungType==='jeongjae'){items.push({l:'재성 종류(정재)',v:6});s+=6;}
     else if(ip.jaesungType==='pyeonjae'){items.push({l:'재성 종류(편재)',v:3});s+=3;}
-    if(ip.jaesungCount>=2){items.push({l:'재성 개수(2개↑)',v:3});s+=3;}
-    else if(ip.jaesungCount===1){items.push({l:'재성 개수(1개)',v:3});s+=3;}
+    // 재성 개수 세분화
+    if(ip.jaesungCount>=3){items.push({l:'재성 개수(3개↑)',v:5});s+=5;}
+    else if(ip.jaesungCount===2){items.push({l:'재성 개수(2개)',v:4});s+=4;}
+    else{items.push({l:'재성 개수(1개)',v:2});s+=2;}
     if(ip.jaesungIsYongsin){items.push({l:'재성=용신',v:9});s+=9;}
     else if(ip.jaesungIsGisin){items.push({l:'재성=기신',v:-6});s+=-6;}
+    // 12운성: 재성이 강한 자리에 앉으면 가점
+    if(ip.jaesungUnsungClass==='strong'){items.push({l:'재성 운성 강(건록/제왕)',v:3});s+=3;}
+    // 지장간 잠재 재성
+    if(ip.jijangganJaeCount>=2){items.push({l:'지장간 잠재 재성(2↑)',v:3});s+=3;}
+    else if(ip.jijangganJaeCount===1){items.push({l:'지장간 잠재 재성(1)',v:1});s+=1;}
   } else {
     items.push({l:'재성 미투출 (지장간 암장)',v:9});s+=9;
+    if(ip.jijangganJaeCount>=1){items.push({l:'지장간 잠재 재성',v:2});s+=2;}
   }
-  return {s,items,label:'재성 구조',max:41,color:'#E8B931'};
+  return {s,items,label:'재성 구조',max:46,color:'#E8B931'};
 }
 function wCalcStage2(ip) {
   const items=[]; let s=0;
-  if(ip.hasSiksangwan){items.push({l:'식신·상관 존재',v:9});s+=9;}
-  if(ip.jaesungHap){items.push({l:'재성 합(合)',v:6});s+=6;}
+  // 식상: 신약이면 기운 빠짐
+  if(ip.hasSiksangwan){
+    const v=ip.balance==='sinyak'?3:9;
+    items.push({l:'식신·상관 존재'+(ip.balance==='sinyak'?' (신약감소)':''),v});s+=v;
+  }
+  if(!ip.hasSiksangwan&&ip.jijangganSikCount>=1){items.push({l:'지장간 잠재 식상',v:2});s+=2;}
+  // 재성합: 합묶임이면 오히려 감점
+  if(ip.jaesungHap){
+    const v=ip.jaesungHapMukim?-2:6;
+    items.push({l:'재성 합(合)'+(ip.jaesungHapMukim?' 합거':' 길합'),v});s+=v;
+  }
+  // 신강/신약/중화 세분화
   if(ip.balance==='junghwa'){items.push({l:'중화',v:12});s+=12;}
-  else if(ip.balance==='singang'||ip.balance==='sinyak'){items.push({l:ip.balance==='singang'?'신강':'신약',v:6});s+=6;}
-  return {s,items,label:'생조 구조',max:27,color:'#4CAF50'};
+  else if(ip.balance==='singang'){items.push({l:'신강',v:9});s+=9;}
+  else{items.push({l:'신약',v:3});s+=3;}
+  // 12운성: 일간 강하면 재성 컨트롤 가점
+  if(ip.ilganUnsungClass==='strong'){items.push({l:'일간 운성 강(건록/제왕)',v:2});s+=2;}
+  // 통근 수
+  if(ip.tonggeunCount>=3){items.push({l:'통근 3개↑ (극신강)',v:2});s+=2;}
+  return {s,items,label:'생조 구조',max:30,color:'#4CAF50'};
 }
 function wCalcStage3(ip) {
   const items=[]; let s=0;
-  if(ip.bigyeobCount>=3){items.push({l:'비겁 과다(3개↑)',v:-15});s+=-15;}
-  else if(ip.bigyeobCount===2){items.push({l:'비겁 과다(2개)',v:-8});s+=-8;}
-  if(ip.jaesungChung){items.push({l:'재성 충(沖)',v:-12});s+=-12;}
-  if(ip.pyeongwanPos==='wolgan'){items.push({l:'편관 월간',v:-11});s+=-11;}
-  else if(ip.hasPyeongwan){items.push({l:'편관 기타',v:-5});s+=-5;}
+  // 비겁: 신약이면 보호, 재성 충분하면 완화
+  let biPenalty=0;
+  if(ip.bigyeobCount>=3) biPenalty=-15;
+  else if(ip.bigyeobCount===2) biPenalty=-8;
+  if(biPenalty<0){
+    let label='비겁 과다('+ip.bigyeobCount+'개)';
+    if(ip.balance==='sinyak'){biPenalty=Math.round(biPenalty*0.3*10)/10;label+=' 신약보호';}
+    else if(ip.jaesungCount>=2){biPenalty=Math.round(biPenalty*0.5*10)/10;label+=' 재성충분';}
+    items.push({l:label,v:biPenalty});s+=biPenalty;
+  }
+  // 재성충: 기신→충거=좋음, 합 동시→완화, 천을귀인→완화
+  if(ip.jaesungChung){
+    if(ip.jaesungIsGisin){
+      items.push({l:'재성 충(기신 충거=길)',v:4});s+=4;
+    } else {
+      let v=-12,label='재성 충(沖)';
+      if(ip.jaesungHap){v=Math.round(v*0.5*10)/10;label+=' 합동시완화';}
+      if(ip.chuneulJaesungDongju){v=Math.round(v*0.6*10)/10;label+=' 귀인보호';}
+      items.push({l:label,v});s+=v;
+    }
+  }
+  // 편관: 식신제살→대폭 완화, 재생관→약간 완화
+  if(ip.pyeongwanPos==='wolgan'){
+    if(ip.siksinjeSal){items.push({l:'편관 월간 (식신제살)',v:-4});s+=-4;}
+    else if(ip.hasJaesung){items.push({l:'편관 월간 (재생관)',v:-7});s+=-7;}
+    else{items.push({l:'편관 월간',v:-11});s+=-11;}
+  } else if(ip.hasPyeongwan){
+    const v=ip.siksinjeSal?-2:-5;
+    items.push({l:'편관 기타'+(ip.siksinjeSal?' (식신제살)':''),v});s+=v;
+  }
+  // 양인살
+  if(ip.hasYanginSal){
+    const v=ip.yanginJaesungDongju?-4:-2;
+    items.push({l:'양인살'+(ip.yanginJaesungDongju?' 재성동주':''),v});s+=v;
+  }
   return {s,items,label:'방해 요소',max:null,color:'#E53935'};
 }
 function wCalcStage4(ip) {
   const items=[]; let s=0;
-  if(ip.daeunJaesung){items.push({l:'대운 재성',v:12});s+=12;}
-  else if(ip.daeunGwansal){items.push({l:'대운 관살',v:-8});s+=-8;}
+  // 대운 재성: 원국 재성 없으면 절반
+  if(ip.daeunJaesung){
+    const v=ip.hasJaesung?12:6;
+    items.push({l:'대운 재성'+(ip.hasJaesung?'':' (원국 재성없음)'),v});s+=v;
+  } else if(ip.daeunGwansal){
+    const v=ip.siksinjeSal?-2:-8;
+    items.push({l:'대운 관살'+(ip.siksinjeSal?' (식신제살)':''),v});s+=v;
+  }
   if(ip.seunJaesung){items.push({l:'세운 재성',v:8});s+=8;}
-  else if(ip.seunGwansal){items.push({l:'세운 관살',v:-5});s+=-5;}
+  else if(ip.seunGwansal){
+    const v=ip.siksinjeSal?-1:-5;
+    items.push({l:'세운 관살'+(ip.siksinjeSal?' (식신제살)':''),v});s+=v;
+  }
   if(ip.daeunSeunHap){items.push({l:'대운·세운 합',v:3});s+=3;}
-  return {s,items,label:'시기 보정',max:23,color:'#5C6BC0'};
+  // 득령 가점
+  if(ip.deukryeong&&ip.hasJaesung){items.push({l:'득령(월지 도움)',v:2});s+=2;}
+  return {s,items,label:'시기 보정',max:25,color:'#5C6BC0'};
 }
 function wCalcStage5(ip) {
   const items=[]; let s=0;
@@ -3089,6 +3154,8 @@ function wCalcStage5(ip) {
   els.forEach(el=>{
     if(ip[el.key]){const v=Math.round((el.pos*el.pP+el.neg*el.pN)*10)/10;items.push({l:`${el.label}(가중)`,v});s+=v;}
   });
+  // 천을귀인: 재물 보호
+  if(ip.hasChuneulGwiin){items.push({l:'천을귀인(재물보호)',v:2});s+=2;}
   return {s,items,label:'양방향 보정',max:null,color:'#AB47BC'};
 }
 function wCalcCross(ip, s1Score) {
@@ -3110,8 +3177,12 @@ function wCalcCross(ip, s1Score) {
     s1Adj=Math.round(s1Adj*(f/WEALTH_CROSS_MULT[1])*10)/10;
     items.push({l:`#19 식신생재+신강(×${f})`,v:Math.round((s1Adj-before)*10)/10,type:'s1adj'});
   }
-  // ── extra 항목 (type:'extra') — 보정 요소 카테고리에 표시, ×1.5 가중치 ──
-  if(ip.insungCount>=3&&ip.hasJaesung){items.push({l:'#4 인성과다+재성',v:-8,type:'extra'});extra+=-8;}
+  // ── extra 항목 (type:'extra') — 보정 요소 카테고리에 표시 ──
+  // 인성과다: 식상 없으면 직접 생재 차단 아니므로 축소
+  if(ip.insungCount>=3&&ip.hasJaesung){
+    const v=ip.hasSiksangwan?-8:-3;
+    items.push({l:'#4 인성과다+재성'+(ip.hasSiksangwan?'':' (식상없음)'),v,type:'extra'});extra+=v;
+  }
   if(ip.bigyeobCount>=2&&ip.jaesungCount===1){
     const p=(ip.bigyeobCount>=3?-5:-2);items.push({l:'#6 비겁쟁재',v:p,type:'extra'});extra+=p;
   }
@@ -3121,18 +3192,19 @@ function wCalcCross(ip, s1Score) {
   if(ip.dowhaJeongjaeDonju){items.push({l:'#11 도화+정재 동주',v:5,type:'extra'});extra+=5;}
   if(ip.yeokmaPyeongwanDongju){items.push({l:'#12 역마+편관 동주',v:-6,type:'extra'});extra+=-6;}
   if(ip.jaesungChung&&ip.jaesungPos){
-    const pm={ilji:11,wolji:8,yeonji:5,siji:5};const orig=pm[ip.jaesungPos]||0;
+    const pm={ilji:11,wolji:8,yeonji:5,siji:3};const orig=pm[ip.jaesungPos]||0;
     const d=Math.round(orig*.4*10)/10-orig;items.push({l:'#13 재성충→위치점수×0.4',v:d,type:'extra'});extra+=d;
   }
   if(ip.jaesungHapMukim&&ip.jaesungPos){
-    const pm={ilji:11,wolji:8,yeonji:5,siji:5};const orig=pm[ip.jaesungPos]||0;
+    const pm={ilji:11,wolji:8,yeonji:5,siji:3};const orig=pm[ip.jaesungPos]||0;
     const d=Math.round(orig*.7*10)/10-orig;items.push({l:'#14 재성합묶임→위치점수×0.7',v:d,type:'extra'});extra+=d;
   }
   if(ip.jaesungSiksangYeonHap){items.push({l:'#15 재성+식상 연속합',v:11,type:'extra'});extra+=11;}
   if(ip.jaesungGwansalYeonHap){items.push({l:'#16 재성+관살 연속합',v:-8,type:'extra'});extra+=-8;}
   if(ip.samhapJaesung){items.push({l:'#17 삼합완성+재성',v:12,type:'extra'});extra+=12;}
   if(ip.samhyeongJaesung){items.push({l:'#18 삼형살+재성 동주',v:-12,type:'extra'});extra+=-12;}
-  if(ip.pyeongwanPos==='wolgan'&&ip.jaesungPos==='ilji'){items.push({l:'#21 편관월간+재성일지',v:-3.6,type:'extra'});extra+=-3.6;}
+  // 편관월간+재성일지: 식신제살이면 면제
+  if(ip.pyeongwanPos==='wolgan'&&ip.jaesungPos==='ilji'&&!ip.siksinjeSal){items.push({l:'#21 편관월간+재성일지',v:-3.6,type:'extra'});extra+=-3.6;}
   return {s1Adj,extra,items,label:'교차 조건',color:'#FF7043'};
 }
 function calcWealth(ip) {
@@ -3265,6 +3337,47 @@ function buildWealthInput(r, sgData, daeunData, hchh, currentYear) {
     }
   }
 
+  // ── v2.5 새 필드: 12운성 ──
+  const ilganUnsung = get12Unsung(ds, db);
+  const ilganUnsungClass = unsungClass(ilganUnsung);
+  let jaesungUnsungClass = 'neutral';
+  if (hasJaesung && jaesungPos) {
+    const posMap = {ilji:2, wolji:1, yeonji:0, siji:3};
+    const jaeBI = r.branches[posMap[jaesungPos]];
+    const jaeStemIdx = 지지_정기[jaeBI];
+    jaesungUnsungClass = unsungClass(get12Unsung(jaeStemIdx, jaeBI));
+  }
+
+  // ── v2.5 새 필드: 지장간 재성/식상 (중기·여기) ──
+  let jijangganJaeCount = 0, jijangganSikCount = 0;
+  for (let bi = 0; bi < 4; bi++) {
+    const jj = 지장간_MAP[r.branches[bi]];
+    for (let ji = 0; ji < jj.length; ji++) {
+      if (jj[ji] === null) continue;
+      if (ji === jj.length - 1) continue; // 정기 skip
+      const god = getTenGod(ds, jj[ji]);
+      if (isJae(god)) jijangganJaeCount++;
+      if (isSik(god)) jijangganSikCount++;
+    }
+  }
+
+  // ── v2.5 새 필드: 통근/득령/득지/득세 ──
+  const tonggeunCount = sgData.tonggeunPillars ? sgData.tonggeunPillars.length : 0;
+  const deukryeong = sgData.deukryeong || false;
+  const deukji = sgData.deukji || false;
+  const deukse = sgData.deukse || false;
+
+  // ── v2.5 새 필드: 천을귀인, 양인살 ──
+  const chuneulPillars = getShinsalPillars('천을귀인');
+  const yanginPillars = getShinsalPillars('양인살');
+  const hasChuneulGwiin = chuneulPillars.some(Boolean);
+  const hasYanginSal = yanginPillars.some(Boolean);
+  const chuneulJaesungDongju = jaePillarsIdx.some(i=>chuneulPillars[i]);
+  const yanginJaesungDongju = jaePillarsIdx.some(i=>yanginPillars[i]);
+
+  // ── v2.5 새 필드: 식신제살 ──
+  const siksinjeSal = hasSiksangwan && siksangwanType==='siksin' && hasPyeongwan;
+
   return {
     hasJaesung,jaesungPos,jaesungType,jaesungCount,jaesungIsYongsin,jaesungIsGisin,
     hasSiksangwan,siksangwanType,jaesungHap,balance,bigyeobCount,jaesungChung,
@@ -3273,6 +3386,12 @@ function buildWealthInput(r, sgData, daeunData, hchh, currentYear) {
     yeokmaJaesungDongju,dowhaByeonjaeDonju,wonjinJaesungDongju,dowhaJeongjaeDonju,
     yeokmaPyeongwanDongju,jaesungHapMukim,jaesungSiksangYeonHap,jaesungGwansalYeonHap,
     samhapJaesung,samhyeongJaesung,
+    // v2.5
+    ilganUnsungClass,jaesungUnsungClass,
+    jijangganJaeCount,jijangganSikCount,
+    tonggeunCount,deukryeong,deukji,deukse,
+    hasChuneulGwiin,hasYanginSal,chuneulJaesungDongju,yanginJaesungDongju,
+    siksinjeSal,
   };
 }
 

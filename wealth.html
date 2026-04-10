@@ -234,7 +234,7 @@ function render(data) {
   const fmt = n => { const r = Math.round(n*10)/10; return Number.isInteger(r) ? String(r) : r.toFixed(1); };
 
   // ── 카테고리 설정 (만점 null = 패널티 카테고리, 바 없음) ──
-  const CAL_MAX    = [41, 27, null, 23, 15];
+  const CAL_MAX    = [46, 30, null, 25, null];
   const CAL_LABELS = ['재성 구조', '생조 구조', '방해 요소', '시기 보정', '보정 요소'];
   const CAL_COLORS = ['#E8B931','#4CAF50','#E53935','#5C6BC0','#AB47BC'];
 

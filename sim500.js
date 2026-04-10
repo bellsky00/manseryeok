@@ -26,6 +26,30 @@ const 도화_MAP = [9,6,3,0,9,6,3,0,9,6,3,0];
 const 원진_MAP = [7,6,9,8,11,10,1,0,3,2,5,4];
 const 귀문_MAP = [1,0,7,6,5,4,3,2,9,8,11,10];
 
+// 천을귀인 MAP (일간 기준)
+const 천을귀인_MAP = [[1,7],[0,8],[11,9],[11,9],[1,7],[0,8],[7,1],[6,2],[5,3],[5,3]];
+// 양인살 MAP (양간만)
+const 양인_MAP = {0:3, 2:5, 4:5, 6:9, 8:11}; // 甲→卯,丙→巳,戊→巳,庚→酉,壬→亥
+// 천주귀인 MAP (일간 기준)
+const 천주_MAP = [5,6,5,6,5,6,5,6,5,6]; // 甲巳,乙午,丙巳,丁午...
+
+function get12Unsung(stemIdx, branchIdx) {
+  const start = 장생_MAP[stemIdx];
+  const isYang = stemIdx % 2 === 0;
+  let stage;
+  if (isYang) stage = ((branchIdx - start) % 12 + 12) % 12;
+  else stage = ((start - branchIdx) % 12 + 12) % 12;
+  return 운성_이름[stage];
+}
+
+function unsungClass(name) {
+  const strong = ['장생','관대','건록','제왕'];
+  const weak   = ['병','사','묘','절'];
+  if (strong.includes(name)) return 'strong';
+  if (weak.includes(name)) return 'weak';
+  return 'neutral';
+}
+
 const 절기_이름 = [
   '입춘','우수','경칩','춘분','청명','곡우',
   '입하','소만','망종','하지','소서','대서',
@@ -187,7 +211,7 @@ function calcGongmang(dayStem, dayBranch, branches) {
 }
 
 // ══ 신살 (재물운에 필요한 것만) ══════════════════════════════════════════════
-function calcShinsalForWealth(yb, db, allBranches) {
+function calcShinsalForWealth(yb, db, allBranches, ds) {
   // allBranches: [hb, db, mb, yb] (시일월연 순)
   const result = {
     역마살:  [false,false,false,false],
@@ -218,6 +242,18 @@ function calcShinsalForWealth(yb, db, allBranches) {
       if (!(i===3&&allBranches[i]===tgtFromYear)&&!(i===1&&allBranches[i]===tgtFromDay))
         result.원진살[i]=true;
     }
+  }
+  // 천을귀인
+  result.천을귀인 = [false,false,false,false];
+  if (ds!==undefined) {
+    const tgts = 천을귀인_MAP[ds];
+    for (let i=0;i<4;i++) if (tgts.includes(allBranches[i])) result.천을귀인[i]=true;
+  }
+  // 양인살 (양간만)
+  result.양인살 = [false,false,false,false];
+  if (ds!==undefined && ds%2===0 && 양인_MAP[ds]!==undefined) {
+    const tgt = 양인_MAP[ds];
+    for (let i=0;i<4;i++) if (allBranches[i]===tgt) result.양인살[i]=true;
   }
   return result;
 }
@@ -257,12 +293,37 @@ function calcSingang(stems, branches) {
     const w = weights[pos.name];
     if (cat==='비겁'||cat==='인성') helpScore+=w; else drainScore+=w;
   }
+  // 득령
+  const monthBranchElem = ELEM_IDX[지지_오행[branches[1]]];
+  const monthJeonggi = 지지_정기[branches[1]];
+  const monthGod = getTenGod(ds, monthJeonggi);
+  const monthCat = godCategory(monthGod);
+  const deukryeong = relation(monthBranchElem)>0 || monthCat==='비겁' || monthCat==='인성';
+
+  // 득지 (통근)
+  let tonggeunCount=0;
+  for (let i=0;i<4;i++) {
+    const jg=지지_정기[branches[i]];
+    const cat=godCategory(getTenGod(ds,jg));
+    if (cat==='비겁'||cat==='인성') tonggeunCount++;
+  }
+  const deukji = tonggeunCount>=2;
+
+  // 득세
+  let helpStemCount=0;
+  for (let i=0;i<4;i++) {
+    if (i===2) continue;
+    const cat=godCategory(getTenGod(ds,stems[i]));
+    if (cat==='비겁'||cat==='인성') helpStemCount++;
+  }
+  const deukse = helpStemCount>=2;
+
   const diff = helpScore - drainScore;
   let resultClass;
   if (diff>10) resultClass='singang';
   else if (diff<-10) resultClass='sinyak';
   else resultClass='junghwa';
-  return { resultClass, helpScore, drainScore };
+  return { resultClass, helpScore, drainScore, tonggeunCount, deukryeong, deukji, deukse };
 }
 
 // ══ 형충회합 (재물운 필요 부분만) ════════════════════════════════════════════
@@ -373,59 +434,122 @@ function wRawToDisplay(raw) {
 }
 
 function wGetPercentile(d) {
-  if (d>=98) return {range:'상위 1~5%',  tier:'극상위 재물 구조', level:9};
-  if (d>=91) return {range:'상위 6~10%', tier:'재물운 매우 강함', level:8};
-  if (d>=85) return {range:'상위 11~20%',tier:'재물운 강함',      level:7};
-  if (d>=75) return {range:'상위 21~35%',tier:'평균 이상',         level:6};
-  if (d>=70) return {range:'상위 36~50%',tier:'평균',              level:5};
-  if (d>=63) return {range:'상위 51~65%',tier:'평균 이하',         level:4};
+  if (d>=97) return {range:'상위 1~5%',  tier:'극상위 재물 구조', level:9};
+  if (d>=90) return {range:'상위 6~10%', tier:'재물운 매우 강함', level:8};
+  if (d>=80) return {range:'상위 11~20%',tier:'재물운 강함',      level:7};
+  if (d>=71) return {range:'상위 21~35%',tier:'평균 이상',         level:6};
+  if (d>=65) return {range:'상위 36~50%',tier:'평균',              level:5};
+  if (d>=61) return {range:'상위 51~65%',tier:'평균 이하',         level:4};
   if (d>=55) return {range:'상위 66~80%',tier:'재물운 약함',       level:3};
-  if (d>=47) return {range:'상위 81~93%',tier:'재물운 매우 약함',  level:2};
-  return {range:'하위 7%',tier:'최하위',level:1};
+  if (d>=49) return {range:'상위 81~90%',tier:'재물운 매우 약함',  level:2};
+  return {range:'하위 10%',tier:'최하위',level:1};
 }
 
-// v2.2 가중치 (×1.5 from v2.0)
+// v2.5 가중치 — 맥락 조건 반영
 function wCalcStage1(ip) {
   let s=0;
   if (ip.hasJaesung) {
-    s+=12;
-    const pm={ilji:11,wolji:8,yeonji:5,siji:5};
+    // 재성 유무: 기신이면 축소
+    s += ip.jaesungIsGisin ? 4 : 12;
+    // 재성 위치: 시지 가중치 축소
+    const pm={ilji:11,wolji:8,yeonji:5,siji:3};
     if (ip.jaesungPos&&pm[ip.jaesungPos]) s+=pm[ip.jaesungPos];
+    // 재성 종류
     if (ip.jaesungType==='jeongjae') s+=6;
     else if (ip.jaesungType==='pyeonjae') s+=3;
-    if (ip.jaesungCount>=2) s+=3;
-    else if (ip.jaesungCount===1) s+=3;
+    // 재성 개수 세분화
+    if (ip.jaesungCount>=3) s+=5;
+    else if (ip.jaesungCount===2) s+=4;
+    else s+=2; // 1개
+    // 용신/기신
     if (ip.jaesungIsYongsin) s+=9;
     else if (ip.jaesungIsGisin) s+=-6;
+    // 12운성: 재성이 강한 자리에 앉으면 가점
+    if (ip.jaesungUnsungClass==='strong') s+=3;
+    // 지장간 잠재 재성
+    if (ip.jijangganJaeCount>=2) s+=3;
+    else if (ip.jijangganJaeCount===1) s+=1;
   } else {
     s+=9; // 재성 미투출 기본점
+    // 지장간에 재성이 숨어있으면 가점
+    if (ip.jijangganJaeCount>=1) s+=2;
   }
   return s;
 }
 function wCalcStage2(ip) {
   let s=0;
-  if (ip.hasSiksangwan) s+=9;
-  if (ip.jaesungHap) s+=6;
+  // 식상 존재: 기신(신약 사주에서 식상은 기운 빠짐)이면 축소
+  if (ip.hasSiksangwan) {
+    s += (ip.balance==='sinyak') ? 3 : 9;
+  }
+  // 지장간 잠재 식상
+  if (!ip.hasSiksangwan && ip.jijangganSikCount>=1) s+=2;
+  // 재성합: 합묶임(합거)이면 오히려 감점
+  if (ip.jaesungHap) {
+    s += ip.jaesungHapMukim ? -2 : 6;
+  }
+  // 신강/신약/중화 세분화
   if (ip.balance==='junghwa') s+=12;
-  else if (ip.balance==='singang'||ip.balance==='sinyak') s+=6;
+  else if (ip.balance==='singang') s+=9;  // 기존 6→9
+  else s+=3; // 신약 기존 6→3
+  // 12운성: 일간이 강한 자리(건록/제왕)이면 재성 컨트롤 가점
+  if (ip.ilganUnsungClass==='strong') s+=2;
+  // 통근 수에 따른 세분화
+  if (ip.tonggeunCount>=3) s+=2; // 극신강 통근
   return s;
 }
 function wCalcStage3(ip) {
   let s=0;
-  if (ip.bigyeobCount>=3) s+=-15;
-  else if (ip.bigyeobCount===2) s+=-8;
-  if (ip.jaesungChung) s+=-12;
-  if (ip.pyeongwanPos==='wolgan') s+=-11;
-  else if (ip.hasPyeongwan) s+=-5;
+  // 비겁: 신약이면 오히려 보호, 재성 2개+이면 완화
+  let biPenalty=0;
+  if (ip.bigyeobCount>=3) biPenalty=-15;
+  else if (ip.bigyeobCount===2) biPenalty=-8;
+  if (biPenalty<0) {
+    if (ip.balance==='sinyak') biPenalty=Math.round(biPenalty*0.3*10)/10; // 신약→비겁은 보호
+    else if (ip.jaesungCount>=2) biPenalty=Math.round(biPenalty*0.5*10)/10; // 재성 충분→분산 가능
+  }
+  s+=biPenalty;
+  // 재성충: 기신 재성이면 충거=좋은 것, 합이 동시에 있으면 완화, 천을귀인 동주면 완화
+  if (ip.jaesungChung) {
+    if (ip.jaesungIsGisin) {
+      s+=4; // 기신 충거 = 오히려 좋음
+    } else {
+      let chungPenalty=-12;
+      if (ip.jaesungHap) chungPenalty=Math.round(chungPenalty*0.5*10)/10; // 합이 동시→완화
+      if (ip.chuneulJaesungDongju) chungPenalty=Math.round(chungPenalty*0.6*10)/10; // 귀인 보호
+      s+=chungPenalty;
+    }
+  }
+  // 편관: 식신제살이면 대폭 완화, 재생관 구조면 완화
+  if (ip.pyeongwanPos==='wolgan') {
+    if (ip.siksinjeSal) s+=-4; // 식신제살 → -11 → -4
+    else if (ip.hasJaesung) s+=-7; // 재생관 구조 → 약간 완화
+    else s+=-11;
+  } else if (ip.hasPyeongwan) {
+    s += ip.siksinjeSal ? -2 : -5;
+  }
+  // 양인살: 재물 쟁탈 패널티
+  if (ip.hasYanginSal) {
+    s += ip.yanginJaesungDongju ? -4 : -2;
+  }
   return s;
 }
 function wCalcStage4(ip) {
   let s=0;
-  if (ip.daeunJaesung) s+=12;
-  else if (ip.daeunGwansal) s+=-8;
+  // 대운 재성: 원국에 재성 없으면 활용도 낮음
+  if (ip.daeunJaesung) {
+    s += ip.hasJaesung ? 12 : 6; // 원국 재성 없으면 절반
+  } else if (ip.daeunGwansal) {
+    s += ip.siksinjeSal ? -2 : -8; // 식신제살 → 관살 대운도 활용 가능
+  }
+  // 세운
   if (ip.seunJaesung) s+=8;
-  else if (ip.seunGwansal) s+=-5;
+  else if (ip.seunGwansal) {
+    s += ip.siksinjeSal ? -1 : -5;
+  }
   if (ip.daeunSeunHap) s+=3;
+  // 득령: 월지 도움이면 계절적 안정 가점
+  if (ip.deukryeong && ip.hasJaesung) s+=2;
   return s;
 }
 function wCalcStage5(ip) {
@@ -438,6 +562,8 @@ function wCalcStage5(ip) {
   ];
   if (ip.yeokmaGongmang) { const ym=els.find(e=>e.key==='yeokmaSal'); if(ym){ym.pP=.7;ym.pN=.3;} }
   els.forEach(el=>{ if(ip[el.key]) s+=Math.round((el.pos*el.pP+el.neg*el.pN)*10)/10; });
+  // 천을귀인: 재물 보호
+  if (ip.hasChuneulGwiin) s+=2;
   return s;
 }
 function wCalcCross(ip, s1Score) {
@@ -453,7 +579,8 @@ function wCalcCross(ip, s1Score) {
   if (ip.hasSiksangwan&&ip.hasJaesung&&ip.siksangwanType==='siksin'&&ip.balance==='singang') {
     const f=WEALTH_CROSS_MULT[19]; s1Adj=Math.round(s1Adj*(f/WEALTH_CROSS_MULT[1])*10)/10;
   }
-  if (ip.insungCount>=3&&ip.hasJaesung) extra+=-8;
+  // 인성과다: 식상 없으면 직접 생재 차단 아니므로 축소
+  if (ip.insungCount>=3&&ip.hasJaesung) extra+=(ip.hasSiksangwan?-8:-3);
   if (ip.bigyeobCount>=2&&ip.jaesungCount===1) extra+=(ip.bigyeobCount>=3?-5:-2);
   if (ip.yeokmaJaesungDongju) extra+=8;
   if (ip.dowhaByeonjaeDonju) extra+=-6;
@@ -474,7 +601,8 @@ function wCalcCross(ip, s1Score) {
   if (ip.jaesungGwansalYeonHap) extra+=-8;
   if (ip.samhapJaesung) extra+=12;
   if (ip.samhyeongJaesung) extra+=-12;
-  if (ip.pyeongwanPos==='wolgan'&&ip.jaesungPos==='ilji') extra+=-3.6;
+  // 편관월간+재성일지: 식신제살이면 면제
+  if (ip.pyeongwanPos==='wolgan'&&ip.jaesungPos==='ilji'&&!ip.siksinjeSal) extra+=-3.6;
   return {s1Adj, extra};
 }
 
@@ -587,6 +715,51 @@ function buildWealthInput(sj, sgData, daeunData, hchh, shinsal, gongmang, curren
     }
   }
 
+  // ── 새 필드: 12운성 ──
+  const ilganUnsung = get12Unsung(ds, db); // 일간의 일지 운성
+  const ilganUnsungClass = unsungClass(ilganUnsung);
+  // 재성 위치의 운성 (재성이 앉은 지지에서 재성 천간의 힘)
+  let jaesungUnsung = '', jaesungUnsungClass = 'neutral';
+  if (hasJaesung && jaesungPos) {
+    const posMap = {ilji:2,wolji:1,yeonji:0,siji:3};
+    const jaeBI = branches[posMap[jaesungPos]];
+    const jaeStemIdx = 지지_정기[jaeBI]; // 재성의 정기
+    jaesungUnsung = get12Unsung(jaeStemIdx, jaeBI);
+    jaesungUnsungClass = unsungClass(jaesungUnsung);
+  }
+
+  // ── 새 필드: 지장간 재성/식상 (중기·여기 포함) ──
+  let jijangganJaeCount = 0, jijangganSikCount = 0;
+  for (let bi = 0; bi < 4; bi++) {
+    const jj = 지장간_MAP[branches[bi]];
+    for (let ji = 0; ji < jj.length; ji++) {
+      if (jj[ji] === null) continue;
+      if (ji === jj.length - 1) continue; // 정기는 이미 allPos에서 카운트
+      const god = getTenGod(ds, jj[ji]);
+      if (isJae(god)) jijangganJaeCount++;
+      if (isSik(god)) jijangganSikCount++;
+    }
+  }
+
+  // ── 새 필드: 통근 수, 득령/득지/득세 ──
+  const tonggeunCount = sgData.tonggeunCount || 0;
+  const deukryeong = sgData.deukryeong || false;
+  const deukji = sgData.deukji || false;
+  const deukse = sgData.deukse || false;
+
+  // ── 새 필드: 천을귀인, 양인살 ──
+  const chuneulPillars = shinsal.천을귀인 || [false,false,false,false];
+  const yanginPillars = shinsal.양인살 || [false,false,false,false];
+  const hasChuneulGwiin = chuneulPillars.some(Boolean);
+  const hasYanginSal = yanginPillars.some(Boolean);
+  // 천을귀인이 재성과 동주
+  const chuneulJaesungDongju = jaeIdxInShinsal.some(i=>chuneulPillars[i]);
+  // 양인이 재성과 동주
+  const yanginJaesungDongju = jaeIdxInShinsal.some(i=>yanginPillars[i]);
+
+  // ── 새 필드: 식신제살 (식신 + 편관 동시 존재) ──
+  const siksinjeSal = hasSiksangwan && siksangwanType==='siksin' && hasPyeongwan;
+
   return {
     hasJaesung,jaesungPos,jaesungType,jaesungCount,jaesungIsYongsin,jaesungIsGisin,
     hasSiksangwan,siksangwanType,jaesungHap,balance,bigyeobCount,jaesungChung,
@@ -595,6 +768,12 @@ function buildWealthInput(sj, sgData, daeunData, hchh, shinsal, gongmang, curren
     yeokmaJaesungDongju,dowhaByeonjaeDonju,wonjinJaesungDongju,dowhaJeongjaeDonju,
     yeokmaPyeongwanDongju,jaesungHapMukim,jaesungSiksangYeonHap,jaesungGwansalYeonHap,
     samhapJaesung,samhyeongJaesung,
+    // v2.5 새 필드
+    ilganUnsungClass,jaesungUnsungClass,
+    jijangganJaeCount,jijangganSikCount,
+    tonggeunCount,deukryeong,deukji,deukse,
+    hasChuneulGwiin,hasYanginSal,chuneulJaesungDongju,yanginJaesungDongju,
+    siksinjeSal,
   };
 }
 
@@ -627,7 +806,7 @@ function generateProfile(id, fixedYear, fixedMonth, fixedDay, fixedHour, fixedGe
 
   const sgData = calcSingang(sj.stems, sj.branches);
   const gongmang = calcGongmang(sj.ds, sj.db, sj.branches);
-  const shinsal = calcShinsalForWealth(sj.yb, sj.db, [sj.hb,sj.db,sj.mb,sj.yb]);
+  const shinsal = calcShinsalForWealth(sj.yb, sj.db, [sj.hb,sj.db,sj.mb,sj.yb], sj.ds);
   const hchh = calcHCHHForWealth(sj.stems, sj.branches);
   const birth = new Date(year, month-1, day, hour, 0);
   const daeunData = calcDaeun(birth, sj.ys, sj.ms, sj.mb, gender);
