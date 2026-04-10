@@ -3035,28 +3035,37 @@ function wGetPercentile(d) {
 const WEALTH_TIER_COLORS = {9:'#C6930A',8:'#D4A017',7:'#5DA54E',6:'#6AA84F',5:'#6B7280',4:'#9CA3AF',3:'#D97706',2:'#DC2626',1:'#991B1B'};
 
 function wCalcStage1(ip) {
+  // 적천수 원칙: 재성이 격을 이루는지(格局成立), 용신 여부가 핵심 — 단순 존재만으로 고점 불가
   const items=[]; let s=0;
   if(ip.hasJaesung){
-    items.push({l:'재성 유무',v:10});s+=10;
-    const pm={ilji:8,wolji:6,yeonji:4,siji:4},pl={ilji:'일지',wolji:'월지',yeonji:'연지',siji:'시지'};
+    items.push({l:'재성 유무',v:8});s+=8;
+    // 위치: 일지 재성은 배우자궁이라 안정적이나 절대적 우위는 아님
+    const pm={ilji:7,wolji:5,yeonji:3,siji:3},pl={ilji:'일지',wolji:'월지',yeonji:'연지',siji:'시지'};
     if(ip.jaesungPos&&pm[ip.jaesungPos]){const v=pm[ip.jaesungPos];items.push({l:`재성 위치(${pl[ip.jaesungPos]})`,v});s+=v;}
-    if(ip.jaesungType==='jeongjae'){items.push({l:'재성 종류(정재)',v:5});s+=5;}
-    else if(ip.jaesungType==='pyeonjae'){items.push({l:'재성 종류(편재)',v:3});s+=3;}
-    if(ip.jaesungCount>=2){items.push({l:'재성 개수(2개↑)',v:4});s+=4;}
+    // 종류: 정재는 안정, 편재는 유동 — 격차 축소
+    if(ip.jaesungType==='jeongjae'){items.push({l:'재성 종류(정재)',v:4});s+=4;}
+    else if(ip.jaesungType==='pyeonjae'){items.push({l:'재성 종류(편재)',v:2});s+=2;}
+    // 개수: 2개↑는 재다신약(財多身弱) 위험 — 단순 증가 아님
+    if(ip.jaesungCount>=2){items.push({l:'재성 개수(2개↑)',v:2});s+=2;}
     else if(ip.jaesungCount===1){items.push({l:'재성 개수(1개)',v:2});s+=2;}
-    if(ip.jaesungIsYongsin){items.push({l:'재성=용신',v:5});s+=5;}
-    else if(ip.jaesungIsGisin){items.push({l:'재성=기신',v:-3});s+=-3;}
+    // 용신/기신: 格局 성립 여부로 가장 중요한 단일 요소
+    if(ip.jaesungIsYongsin){items.push({l:'재성=용신',v:6});s+=6;}
+    else if(ip.jaesungIsGisin){items.push({l:'재성=기신',v:-4});s+=-4;}
   } else {
-    items.push({l:'재성 미투출 (지장간 암장)',v:12});s+=12;
+    // 지장간 암장: 투출된 재성보다 힘이 약함 — 기본점 대폭 축소
+    items.push({l:'재성 미투출 (지장간 암장)',v:6});s+=6;
   }
   return {s,items,label:'1단계: 재성 구조',max:35,color:'#E8B931'};
 }
 function wCalcStage2(ip) {
+  // 자평진전 원칙: 식신생재(食神生財)는 생조력이 있어야만 의미 있음
+  // 재성합(合)은 합화(合化) 여부 불확실 — 과대평가 금지
   const items=[]; let s=0;
-  if(ip.hasSiksangwan){items.push({l:'식신·상관 존재',v:8});s+=8;}
-  if(ip.jaesungHap){items.push({l:'재성 합(合)',v:7});s+=7;}
-  if(ip.balance==='junghwa'){items.push({l:'중화',v:10});s+=10;}
-  else if(ip.balance==='singang'||ip.balance==='sinyak'){items.push({l:ip.balance==='singang'?'신강':'신약',v:5});s+=5;}
+  if(ip.hasSiksangwan){items.push({l:'식신·상관 존재',v:6});s+=6;}
+  if(ip.jaesungHap){items.push({l:'재성 합(合)',v:4});s+=4;}
+  // 중화: 재관이 균형잡힌 이상적 구조, 신강/신약은 편향 — 차등 부여
+  if(ip.balance==='junghwa'){items.push({l:'중화',v:8});s+=8;}
+  else if(ip.balance==='singang'||ip.balance==='sinyak'){items.push({l:ip.balance==='singang'?'신강':'신약',v:4});s+=4;}
   return {s,items,label:'2단계: 생조 구조',max:25,color:'#4CAF50'};
 }
 function wCalcStage3(ip) {

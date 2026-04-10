@@ -295,6 +295,9 @@ function render(data) {
     }
   }
 
+  // 실제 cal 합산 — iterative capping이 sum=displayScore 보장
+  const calSum = Math.round(cal.reduce((a,b)=>a+b,0)*10)/10;
+
   let html = '';
 
   // 사주 요약
@@ -305,8 +308,8 @@ function render(data) {
     <span>${meta.시주 ? meta.시주.hangul : ''} ${meta.일주 ? meta.일주.hangul : ''} ${meta.월주 ? meta.월주.hangul : ''} ${meta.연주 ? meta.연주.hangul : ''}</span>
   </div>`;
 
-  // 게이지 (원점수 숨김)
-  const pct = Math.min(100, Math.max(0, res.displayScore));
+  // 게이지: calSum = 실제 분석 항목 합산 총점
+  const pct = Math.min(100, Math.max(0, calSum));
   const R = 80, circ = 2 * Math.PI * R, dash = (pct / 100) * circ;
   html += `<div class="gauge-wrap">
     <svg width="200" height="200" viewBox="0 0 200 200">
@@ -314,7 +317,7 @@ function render(data) {
       <circle cx="100" cy="100" r="${R}" fill="none" stroke="${tc}" stroke-width="12"
         stroke-linecap="round" stroke-dasharray="${dash} ${circ}"
         transform="rotate(-90 100 100)" style="transition:stroke-dasharray 1.2s"/>
-      <text x="100" y="92" text-anchor="middle" fill="#F1F5F9" style="font-size:38px;font-weight:800;font-family:monospace">${res.displayScore}</text>
+      <text x="100" y="92" text-anchor="middle" fill="#F1F5F9" style="font-size:38px;font-weight:800;font-family:monospace">${calSum}</text>
       <text x="100" y="130" text-anchor="middle" fill="${tc}" style="font-size:13px;font-weight:700">${res.percentile.range}</text>
     </svg>
     <div class="tier-badge" style="background:${tc}22;border:1px solid ${tc}55;color:${tc}">${res.percentile.tier}</div>
@@ -346,11 +349,11 @@ function render(data) {
   }
   html += `</div>`;
 
-  // 총점 배너
+  // 총점 배너 — calSum = 실제 분석 항목 합산 (게이지와 동일)
   html += `<div class="total-banner">
     <div style="font-size:14px;color:#94A3B8;margin-bottom:6px">종합 점수</div>
-    <div style="font-size:28px;font-weight:800;color:${tc};font-family:monospace">${res.displayScore}점</div>
-    <div style="font-size:12px;color:#475569;margin-top:8px">${CAL_LABELS.map((l,i)=>`${l}(${fmt(cal[i])})`).join(' + ')} = ${res.displayScore}</div>
+    <div style="font-size:28px;font-weight:800;color:${tc};font-family:monospace">${calSum}점</div>
+    <div style="font-size:12px;color:#475569;margin-top:8px">${CAL_LABELS.map((l,i)=>`${l}(${fmt(cal[i])})`).join(' + ')} = ${calSum}</div>
   </div>`;
 
   // 자동 추출 입력값
