@@ -255,24 +255,44 @@ function render(data) {
     [...(res.stages[4].items || []), ...(res.cross.items || [])],
   ];
 
-  // 음수를 0으로 올려서 비율 분배 (모든 값 >= 0)
+  // 비례 배분 + 만점 초과 시 캡핑 후 재배분 (iterative)
   const minRaw = Math.min(0, ...rawParts);
-  const shifted = rawParts.map(v => v - minRaw);
-  const shiftedSum = shifted.reduce((a,b) => a+b, 0);
-
-  // displayScore를 비율 분배 → 합계 = displayScore 보장
+  const pool = rawParts.map(v => v - minRaw);
   const cal = new Array(5).fill(0);
-  if (shiftedSum > 0) {
-    let accum = 0;
-    for (let i = 0; i < 4; i++) {
-      cal[i] = Math.round(shifted[i] / shiftedSum * res.displayScore * 10) / 10;
-      accum += cal[i];
+  const fixed = new Array(5).fill(false);
+  let remaining = res.displayScore;
+
+  for (let iter = 0; iter < 10; iter++) {
+    const poolSum = pool.reduce((a, b) => a + b, 0);
+    let capped = false;
+    if (poolSum > 0) {
+      for (let i = 0; i < 5; i++) {
+        if (!fixed[i] && pool[i] / poolSum * remaining > CAL_MAX[i]) {
+          cal[i] = CAL_MAX[i];
+          remaining -= CAL_MAX[i];
+          pool[i] = 0;
+          fixed[i] = true;
+          capped = true;
+        }
+      }
     }
-    cal[4] = Math.round((res.displayScore - accum) * 10) / 10;
-  } else {
-    const each = Math.round(res.displayScore / 5 * 10) / 10;
-    for (let i = 0; i < 4; i++) cal[i] = each;
-    cal[4] = Math.round((res.displayScore - each * 4) * 10) / 10;
+    if (!capped) {
+      // 더 이상 초과 없음 → 최종 배분
+      const freeIdxs = [];
+      for (let i = 0; i < 5; i++) { if (!fixed[i]) freeIdxs.push(i); }
+      const freePoolSum = freeIdxs.reduce((a, i) => a + pool[i], 0);
+      let accum = 0;
+      for (let j = 0; j < freeIdxs.length; j++) {
+        const i = freeIdxs[j];
+        if (j === freeIdxs.length - 1) {
+          cal[i] = Math.round((remaining - accum) * 10) / 10;
+        } else {
+          cal[i] = Math.round((freePoolSum > 0 ? pool[i] / freePoolSum : 1 / freeIdxs.length) * remaining * 10) / 10;
+          accum += cal[i];
+        }
+      }
+      break;
+    }
   }
 
   let html = '';
