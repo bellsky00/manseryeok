@@ -598,16 +598,31 @@ function buildWealthInput(sj, sgData, daeunData, hchh, shinsal, gongmang, curren
   };
 }
 
+// ══ MD 파일 파싱 ════════════════════════════════════════════════════════════
+function parseDataset(mdPath) {
+  const fs = require('fs');
+  if (!fs.existsSync(mdPath)) return null;
+  const lines = fs.readFileSync(mdPath,'utf8').split('\n');
+  const rows = [];
+  for (const line of lines) {
+    // 형식: | # | 생년 | 월 | 일 | 시 | 성별 | ...
+    const m = line.match(/^\|\s*(\d+)\s*\|\s*(\d{4})\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)시\s*\|\s*(남|여)\s*\|/);
+    if (!m) continue;
+    rows.push({ id:+m[1], year:+m[2], month:+m[3], day:+m[4], hour:+m[5], gender:m[6] });
+  }
+  return rows.length>0 ? rows : null;
+}
+
 // ══ 랜덤 생성 + 전체 계산 ════════════════════════════════════════════════════
 function randomInt(min, max) { return Math.floor(Math.random()*(max-min+1))+min; }
 
-function generateProfile(id) {
-  const year  = randomInt(1980,2005);
-  const month = randomInt(1,12);
+function generateProfile(id, fixedYear, fixedMonth, fixedDay, fixedHour, fixedGender) {
+  const year   = fixedYear  ?? randomInt(1980,2005);
+  const month  = fixedMonth ?? randomInt(1,12);
   const maxDay = new Date(year,month,0).getDate();
-  const day   = randomInt(1,maxDay);
-  const hour  = randomInt(0,23);
-  const gender = Math.random()<0.5?'남':'여';
+  const day    = fixedDay   ?? randomInt(1,maxDay);
+  const hour   = fixedHour  ?? randomInt(0,23);
+  const gender = fixedGender ?? (Math.random()<0.5?'남':'여');
   const sj = calcSaju(year, month, day, hour);
 
   const sgData = calcSingang(sj.stems, sj.branches);
@@ -644,11 +659,28 @@ function generateProfile(id) {
 }
 
 // ══ 메인 실행 ════════════════════════════════════════════════════════════════
-console.log('🀄 500명 만세력 + 재물운 시뮬레이션 시작...\n');
+const fs_main = require('fs');
+const path_main = require('path');
+const DS_PATH = path_main.join(__dirname, 'saju_dataset_500.md');
+
+const existingRows = parseDataset(DS_PATH);
+const useFixed = existingRows && existingRows.length > 0;
+
+if (useFixed) {
+  console.log(`📂 기존 데이터셋 로드: ${existingRows.length}개 프로필 → 동일 사주로 재계산\n`);
+} else {
+  console.log('🀄 500명 만세력 + 재물운 시뮬레이션 시작 (랜덤 생성)...\n');
+}
+
 const profiles = [];
-const TOTAL = 500;
+const TOTAL = useFixed ? existingRows.length : 500;
 for (let i=1;i<=TOTAL;i++) {
-  profiles.push(generateProfile(i));
+  if (useFixed) {
+    const r = existingRows[i-1];
+    profiles.push(generateProfile(r.id, r.year, r.month, r.day, r.hour, r.gender));
+  } else {
+    profiles.push(generateProfile(i));
+  }
   if (i%100===0) process.stdout.write(`${i}명 완료...\n`);
 }
 
@@ -722,9 +754,6 @@ profiles.forEach(p=>{
   md += `| ${p.id} | ${p.year} | ${p.month} | ${p.day} | ${p.hour}시 | ${p.gender} | ${p.yearPillar} | ${p.monthPillar} | ${p.dayPillar} | ${p.hourPillar} | ${p.singang==='singang'?'신강':p.singang==='sinyak'?'신약':'중화'} | ${p.rawTotal} | ${p.displayScore} | ${p.tier} |\n`;
 });
 
-const fs = require('fs');
-const path = require('path');
-const outPath = path.join(__dirname, 'saju_dataset_500.md');
-fs.writeFileSync(outPath, md, 'utf8');
-console.log(`\n✅ 저장 완료: ${outPath}`);
+fs_main.writeFileSync(DS_PATH, md, 'utf8');
+console.log(`\n✅ 저장 완료: ${DS_PATH}`);
 console.log(`📄 총 ${profiles.length}개 프로필 저장됨`);
