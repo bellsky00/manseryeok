@@ -367,74 +367,74 @@ function getYearPillar(year) {
 // ══ 재물운 엔진 ══════════════════════════════════════════════════════════════
 const WEALTH_CROSS_MULT = {1:1.15,5:1.10,19:1.20,20:0.55};
 
-// 지수 커브: 최저 30점, 평균(원점수~20) → 70점, 만점 100점
+// v2.3 선형 변환: base 50, rawTotal -20 → 30점, rawTotal 50 → 100점
 function wRawToDisplay(raw) {
-  const c = Math.max(0, Math.round(raw));
-  return Math.min(100, Math.round(30 + 70 * (1 - Math.exp(-c / 24))));
+  return Math.min(100, Math.max(30, Math.round(50 + raw)));
 }
 
 function wGetPercentile(d) {
-  if (d>=93) return {range:'상위 1~3%',  tier:'극상위 재물 구조', level:9};
-  if (d>=85) return {range:'상위 4~10%', tier:'재물운 매우 강함', level:8};
-  if (d>=80) return {range:'상위 11~20%',tier:'재물운 강함',      level:7};
-  if (d>=75) return {range:'상위 21~35%',tier:'평균 이상',         level:6};
-  if (d>=65) return {range:'상위 36~65%',tier:'평균',              level:5};
-  if (d>=55) return {range:'상위 66~80%',tier:'평균 이하',         level:4};
-  if (d>=45) return {range:'상위 81~90%',tier:'재물운 약함',       level:3};
-  if (d>=35) return {range:'하위 3~10%', tier:'재물운 매우 약함',  level:2};
+  if (d>=95) return {range:'상위 1~7%',  tier:'극상위 재물 구조', level:9};
+  if (d>=90) return {range:'상위 8~15%', tier:'재물운 매우 강함', level:8};
+  if (d>=82) return {range:'상위 16~28%',tier:'재물운 강함',      level:7};
+  if (d>=74) return {range:'상위 29~45%',tier:'평균 이상',         level:6};
+  if (d>=63) return {range:'상위 46~68%',tier:'평균',              level:5};
+  if (d>=54) return {range:'상위 69~83%',tier:'평균 이하',         level:4};
+  if (d>=45) return {range:'상위 84~92%',tier:'재물운 약함',       level:3};
+  if (d>=36) return {range:'상위 93~97%',tier:'재물운 매우 약함',  level:2};
   return {range:'하위 3%',tier:'최하위',level:1};
 }
 
+// v2.2 가중치 (×1.5 from v2.0)
 function wCalcStage1(ip) {
   let s=0;
   if (ip.hasJaesung) {
-    s+=10;
-    const pm={ilji:8,wolji:6,yeonji:4,siji:4};
+    s+=12;
+    const pm={ilji:11,wolji:8,yeonji:5,siji:5};
     if (ip.jaesungPos&&pm[ip.jaesungPos]) s+=pm[ip.jaesungPos];
-    if (ip.jaesungType==='jeongjae') s+=5;
+    if (ip.jaesungType==='jeongjae') s+=6;
     else if (ip.jaesungType==='pyeonjae') s+=3;
-    if (ip.jaesungCount>=2) s+=4;
-    else if (ip.jaesungCount===1) s+=2;
-    if (ip.jaesungIsYongsin) s+=5;
-    else if (ip.jaesungIsGisin) s+=-3;
+    if (ip.jaesungCount>=2) s+=3;
+    else if (ip.jaesungCount===1) s+=3;
+    if (ip.jaesungIsYongsin) s+=9;
+    else if (ip.jaesungIsGisin) s+=-6;
   } else {
-    s+=12; // 재성 미투출 기본점 (지장간 암장 기운)
+    s+=9; // 재성 미투출 기본점
   }
   return s;
 }
 function wCalcStage2(ip) {
   let s=0;
-  if (ip.hasSiksangwan) s+=8;
-  if (ip.jaesungHap) s+=7;
-  if (ip.balance==='junghwa') s+=10;
-  else if (ip.balance==='singang'||ip.balance==='sinyak') s+=5;
+  if (ip.hasSiksangwan) s+=9;
+  if (ip.jaesungHap) s+=6;
+  if (ip.balance==='junghwa') s+=12;
+  else if (ip.balance==='singang'||ip.balance==='sinyak') s+=6;
   return s;
 }
 function wCalcStage3(ip) {
   let s=0;
-  if (ip.bigyeobCount>=3) s+=-10;
-  else if (ip.bigyeobCount===2) s+=-5;
-  if (ip.jaesungChung) s+=-8;
-  if (ip.pyeongwanPos==='wolgan') s+=-7;
-  else if (ip.hasPyeongwan) s+=-3;
+  if (ip.bigyeobCount>=3) s+=-15;
+  else if (ip.bigyeobCount===2) s+=-8;
+  if (ip.jaesungChung) s+=-12;
+  if (ip.pyeongwanPos==='wolgan') s+=-11;
+  else if (ip.hasPyeongwan) s+=-5;
   return s;
 }
 function wCalcStage4(ip) {
   let s=0;
-  if (ip.daeunJaesung) s+=8;
-  else if (ip.daeunGwansal) s+=-5;
-  if (ip.seunJaesung) s+=5;
-  else if (ip.seunGwansal) s+=-3;
-  if (ip.daeunSeunHap) s+=2;
+  if (ip.daeunJaesung) s+=12;
+  else if (ip.daeunGwansal) s+=-8;
+  if (ip.seunJaesung) s+=8;
+  else if (ip.seunGwansal) s+=-5;
+  if (ip.daeunSeunHap) s+=3;
   return s;
 }
 function wCalcStage5(ip) {
   let s=0;
   const els=[
-    {key:'gongmang',    pos:5, neg:-5, pP:.5,pN:.5},
-    {key:'wonjinsal',   pos:2, neg:-6, pP:.3,pN:.7},
-    {key:'dowhaSal',    pos:4, neg:-2, pP:.6,pN:.4},
-    {key:'yeokmaSal',   pos:3, neg:-3, pP:.5,pN:.5},
+    {key:'gongmang',  pos:8, neg:-8, pP:.5,pN:.5},
+    {key:'wonjinsal', pos:3, neg:-9, pP:.3,pN:.7},
+    {key:'dowhaSal',  pos:6, neg:-3, pP:.6,pN:.4},
+    {key:'yeokmaSal', pos:5, neg:-5, pP:.5,pN:.5},
   ];
   if (ip.yeokmaGongmang) { const ym=els.find(e=>e.key==='yeokmaSal'); if(ym){ym.pP=.7;ym.pN=.3;} }
   els.forEach(el=>{ if(ip[el.key]) s+=Math.round((el.pos*el.pP+el.neg*el.pN)*10)/10; });
@@ -448,34 +448,33 @@ function wCalcCross(ip, s1Score) {
     const f=WEALTH_CROSS_MULT[5]; s1Adj=Math.round(s1Adj*f*10)/10;
   }
   if (ip.jaesungCount>=2&&ip.balance==='sinyak') {
-    const reduced=Math.round(s1Adj*0.55*10)/10; s1Adj=reduced;
+    s1Adj=Math.round(s1Adj*0.55*10)/10;
   }
-  if (ip.insungCount>=3&&ip.hasJaesung) extra+=-5;
-  if (ip.bigyeobCount>=2&&ip.jaesungCount===1) extra+=(ip.bigyeobCount>=3?-6:-3)*.5;
-  if (ip.yeokmaJaesungDongju) extra+=5;
-  if (ip.dowhaByeonjaeDonju) extra+=-4;
-  if (ip.wonjinJaesungDongju) extra+=-6;
-  if (ip.dowhaJeongjaeDonju) extra+=3;
-  if (ip.yeokmaPyeongwanDongju) extra+=-4;
+  if (ip.hasSiksangwan&&ip.hasJaesung&&ip.siksangwanType==='siksin'&&ip.balance==='singang') {
+    const f=WEALTH_CROSS_MULT[19]; s1Adj=Math.round(s1Adj*(f/WEALTH_CROSS_MULT[1])*10)/10;
+  }
+  if (ip.insungCount>=3&&ip.hasJaesung) extra+=-8;
+  if (ip.bigyeobCount>=2&&ip.jaesungCount===1) extra+=(ip.bigyeobCount>=3?-5:-2);
+  if (ip.yeokmaJaesungDongju) extra+=8;
+  if (ip.dowhaByeonjaeDonju) extra+=-6;
+  if (ip.wonjinJaesungDongju) extra+=-9;
+  if (ip.dowhaJeongjaeDonju) extra+=5;
+  if (ip.yeokmaPyeongwanDongju) extra+=-6;
   if (ip.jaesungChung&&ip.jaesungPos) {
-    const pm={ilji:8,wolji:6,yeonji:4,siji:4};
+    const pm={ilji:11,wolji:8,yeonji:5,siji:5};
     const orig=pm[ip.jaesungPos]||0;
     extra+=Math.round(orig*.4*10)/10-orig;
   }
   if (ip.jaesungHapMukim&&ip.jaesungPos) {
-    const pm={ilji:8,wolji:6,yeonji:4,siji:4};
+    const pm={ilji:11,wolji:8,yeonji:5,siji:5};
     const orig=pm[ip.jaesungPos]||0;
     extra+=Math.round(orig*.7*10)/10-orig;
   }
-  if (ip.jaesungSiksangYeonHap) extra+=7;
-  if (ip.jaesungGwansalYeonHap) extra+=-5;
-  if (ip.samhapJaesung) extra+=8;
-  if (ip.samhyeongJaesung) extra+=-8;
-  if (ip.hasSiksangwan&&ip.hasJaesung&&ip.siksangwanType==='siksin'&&ip.balance==='singang') {
-    const f=WEALTH_CROSS_MULT[19];
-    s1Adj=Math.round(s1Adj*(f/WEALTH_CROSS_MULT[1])*10)/10;
-  }
-  if (ip.pyeongwanPos==='wolgan'&&ip.jaesungPos==='ilji') extra+=-2.4;
+  if (ip.jaesungSiksangYeonHap) extra+=11;
+  if (ip.jaesungGwansalYeonHap) extra+=-8;
+  if (ip.samhapJaesung) extra+=12;
+  if (ip.samhyeongJaesung) extra+=-12;
+  if (ip.pyeongwanPos==='wolgan'&&ip.jaesungPos==='ilji') extra+=-3.6;
   return {s1Adj, extra};
 }
 
@@ -485,9 +484,8 @@ function calcWealth(ip) {
   let s2Adj=s2;
   if (ip.balance==='singang'&&!ip.hasJaesung) s2Adj=Math.round(s2*.7*10)/10;
   const rawTotal=cross.s1Adj+s2Adj+s3+s4+s5+cross.extra;
-  const clamped=Math.max(0,Math.round(rawTotal));
-  const ds=wRawToDisplay(clamped);
-  return { rawTotal:Math.round(rawTotal*10)/10, clamped, displayScore:ds, percentile:wGetPercentile(ds) };
+  const ds=wRawToDisplay(rawTotal);
+  return { rawTotal:Math.round(rawTotal*10)/10, displayScore:ds, percentile:wGetPercentile(ds) };
 }
 
 // ══ 재물운 입력 자동 매핑 ════════════════════════════════════════════════════
