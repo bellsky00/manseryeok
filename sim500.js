@@ -434,14 +434,15 @@ function wRawToDisplay(raw) {
 }
 
 function wGetPercentile(d) {
-  if (d>=97) return {range:'상위 1~5%',  tier:'극상위 재물 구조', level:9};
-  if (d>=90) return {range:'상위 6~10%', tier:'재물운 매우 강함', level:8};
-  if (d>=80) return {range:'상위 11~20%',tier:'재물운 강함',      level:7};
-  if (d>=71) return {range:'상위 21~35%',tier:'평균 이상',         level:6};
-  if (d>=65) return {range:'상위 36~50%',tier:'평균',              level:5};
-  if (d>=61) return {range:'상위 51~65%',tier:'평균 이하',         level:4};
-  if (d>=55) return {range:'상위 66~80%',tier:'재물운 약함',       level:3};
-  if (d>=49) return {range:'상위 81~90%',tier:'재물운 매우 약함',  level:2};
+  // v2.6 실측 500명 백분위 기반 보정
+  if (d>=90) return {range:'상위 1~5%',  tier:'극상위 재물 구조', level:9};
+  if (d>=80) return {range:'상위 6~10%', tier:'재물운 매우 강함', level:8};
+  if (d>=75) return {range:'상위 11~20%',tier:'재물운 강함',      level:7};
+  if (d>=67) return {range:'상위 21~35%',tier:'평균 이상',         level:6};
+  if (d>=63) return {range:'상위 36~50%',tier:'평균',              level:5};
+  if (d>=57) return {range:'상위 51~65%',tier:'평균 이하',         level:4};
+  if (d>=50) return {range:'상위 66~80%',tier:'재물운 약함',       level:3};
+  if (d>=43) return {range:'상위 81~90%',tier:'재물운 매우 약함',  level:2};
   return {range:'하위 10%',tier:'최하위',level:1};
 }
 
@@ -457,10 +458,12 @@ function wCalcStage1(ip) {
     // 재성 종류
     if (ip.jaesungType==='jeongjae') s+=6;
     else if (ip.jaesungType==='pyeonjae') s+=3;
-    // 재성 개수 세분화
-    if (ip.jaesungCount>=3) s+=5;
-    else if (ip.jaesungCount===2) s+=4;
+    // 재성 개수 세분화 (v2.6: 강화)
+    if (ip.jaesungCount>=3) s+=12;
+    else if (ip.jaesungCount===2) s+=8;
     else s+=2; // 1개
+    // 천간 투출: 드러난 재성이 숨은 재성보다 강함
+    if (ip.jaesungTianchuan) s+=9;
     // 용신/기신
     if (ip.jaesungIsYongsin) s+=9;
     else if (ip.jaesungIsGisin) s+=-6;
@@ -478,15 +481,17 @@ function wCalcStage1(ip) {
 }
 function wCalcStage2(ip) {
   let s=0;
-  // 식상 존재: 기신(신약 사주에서 식상은 기운 빠짐)이면 축소
+  // 식상 존재: 신약이면 기운 빠짐, 합묶임이면 생재 흐름 차단
   if (ip.hasSiksangwan) {
-    s += (ip.balance==='sinyak') ? 3 : 9;
+    if (ip.balance==='sinyak') s+=3;
+    else if (ip.jaesungHapMukim) s+=3; // 재성 합묶임 → 식신생재 경로 차단
+    else s+=9;
   }
   // 지장간 잠재 식상
   if (!ip.hasSiksangwan && ip.jijangganSikCount>=1) s+=2;
-  // 재성합: 합묶임(합거)이면 오히려 감점
+  // 재성합: 합묶임이면 재물이 묶여 패널티 강화
   if (ip.jaesungHap) {
-    s += ip.jaesungHapMukim ? -2 : 6;
+    s += ip.jaesungHapMukim ? -6 : 6;
   }
   // 신강/신약/중화 세분화
   if (ip.balance==='junghwa') s+=12;
@@ -538,7 +543,9 @@ function wCalcStage4(ip) {
   let s=0;
   // 대운 재성: 원국에 재성 없으면 활용도 낮음
   if (ip.daeunJaesung) {
-    s += ip.hasJaesung ? 12 : 6; // 원국 재성 없으면 절반
+    if (!ip.hasJaesung) s += 6;
+    else if (ip.jaesungHapMukim) s += 8; // 합묶임 → 대운재성 활용 제한
+    else s += 12;
   } else if (ip.daeunGwansal) {
     s += ip.siksinjeSal ? -2 : -8; // 식신제살 → 관살 대운도 활용 가능
   }
@@ -568,16 +575,19 @@ function wCalcStage5(ip) {
 }
 function wCalcCross(ip, s1Score) {
   let s1Adj=s1Score, extra=0;
-  if (ip.hasSiksangwan&&ip.hasJaesung&&ip.siksangwanType==='siksin') {
-    const f=WEALTH_CROSS_MULT[1]; s1Adj=Math.round(s1Adj*f*10)/10;
-  } else if (ip.hasSiksangwan&&ip.hasJaesung&&ip.siksangwanType==='sanggwan') {
-    const f=WEALTH_CROSS_MULT[5]; s1Adj=Math.round(s1Adj*f*10)/10;
+  // 이중합이면 재성이 묶여 식신생재 흐름 차단 → 배율 적용 안 함
+  if (!ip.jaesungDoubleHap) {
+    if (ip.hasSiksangwan&&ip.hasJaesung&&ip.siksangwanType==='siksin') {
+      const f=WEALTH_CROSS_MULT[1]; s1Adj=Math.round(s1Adj*f*10)/10;
+    } else if (ip.hasSiksangwan&&ip.hasJaesung&&ip.siksangwanType==='sanggwan') {
+      const f=WEALTH_CROSS_MULT[5]; s1Adj=Math.round(s1Adj*f*10)/10;
+    }
+    if (ip.hasSiksangwan&&ip.hasJaesung&&ip.siksangwanType==='siksin'&&ip.balance==='singang') {
+      const f=WEALTH_CROSS_MULT[19]; s1Adj=Math.round(s1Adj*(f/WEALTH_CROSS_MULT[1])*10)/10;
+    }
   }
   if (ip.jaesungCount>=2&&ip.balance==='sinyak') {
     s1Adj=Math.round(s1Adj*0.55*10)/10;
-  }
-  if (ip.hasSiksangwan&&ip.hasJaesung&&ip.siksangwanType==='siksin'&&ip.balance==='singang') {
-    const f=WEALTH_CROSS_MULT[19]; s1Adj=Math.round(s1Adj*(f/WEALTH_CROSS_MULT[1])*10)/10;
   }
   // 인성과다: 식상 없으면 직접 생재 차단 아니므로 축소
   if (ip.insungCount>=3&&ip.hasJaesung) extra+=(ip.hasSiksangwan?-8:-3);
@@ -592,10 +602,10 @@ function wCalcCross(ip, s1Score) {
     const orig=pm[ip.jaesungPos]||0;
     extra+=Math.round(orig*.4*10)/10-orig;
   }
-  if (ip.jaesungHapMukim&&ip.jaesungPos) {
-    const pm={ilji:11,wolji:8,yeonji:5,siji:5};
-    const orig=pm[ip.jaesungPos]||0;
-    extra+=Math.round(orig*.7*10)/10-orig;
+  // v2.6: 합묶임 → s1Adj 전체 축소 (이중합이면 더 강하게)
+  if (ip.jaesungHapMukim) {
+    const mult = ip.jaesungDoubleHap ? 0.35 : 0.6;
+    s1Adj = Math.round(s1Adj * mult * 10) / 10;
   }
   if (ip.jaesungSiksangYeonHap) extra+=11;
   if (ip.jaesungGwansalYeonHap) extra+=-8;
@@ -760,6 +770,18 @@ function buildWealthInput(sj, sgData, daeunData, hchh, shinsal, gongmang, curren
   // ── 새 필드: 식신제살 (식신 + 편관 동시 존재) ──
   const siksinjeSal = hasSiksangwan && siksangwanType==='siksin' && hasPyeongwan;
 
+  // ── v2.6 새 필드: 재성 천간 투출 여부 ──
+  const jaesungTianchuan = jaeList.some(p => p.type === 'stem');
+
+  // ── v2.6 새 필드: 재성 관련 합 개수 (이중합 판별) ──
+  let jaesungHapCount = 0;
+  for (const h of hchh) {
+    const inv = jaePillarNames.some(n => h.detail && h.detail.includes(n));
+    if (h.type === '합' && inv &&
+        (h.subtype==='육합'||h.subtype==='반합(삼합)'||h.subtype==='삼합')) jaesungHapCount++;
+  }
+  const jaesungDoubleHap = jaesungHapCount >= 2; // 이중합 (辰酉合 + 子辰반합 등)
+
   return {
     hasJaesung,jaesungPos,jaesungType,jaesungCount,jaesungIsYongsin,jaesungIsGisin,
     hasSiksangwan,siksangwanType,jaesungHap,balance,bigyeobCount,jaesungChung,
@@ -774,6 +796,8 @@ function buildWealthInput(sj, sgData, daeunData, hchh, shinsal, gongmang, curren
     tonggeunCount,deukryeong,deukji,deukse,
     hasChuneulGwiin,hasYanginSal,chuneulJaesungDongju,yanginJaesungDongju,
     siksinjeSal,
+    // v2.6
+    jaesungTianchuan,jaesungDoubleHap,jaesungHapCount,
   };
 }
 

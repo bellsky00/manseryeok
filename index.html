@@ -3020,16 +3020,16 @@ const WEALTH_CROSS_MULT = { 1:1.15, 5:1.10, 19:1.20, 20:0.55 };
 function wRawToDisplay(raw) {
   return Math.min(100, Math.max(30, Math.round(50 + raw * 0.88)));
 }
-// v2.5 백분위 기준 (500명 실측 기반)
+// v2.6 백분위 기준 (500명 실측 기반 재보정)
 function wGetPercentile(d) {
-  if (d>=97) return { range:'상위 1~5%',  tier:'극상위 재물 구조', level:9 };
-  if (d>=90) return { range:'상위 6~10%', tier:'재물운 매우 강함', level:8 };
-  if (d>=80) return { range:'상위 11~20%',tier:'재물운 강함',      level:7 };
-  if (d>=71) return { range:'상위 21~35%',tier:'평균 이상',         level:6 };
-  if (d>=65) return { range:'상위 36~50%',tier:'평균',              level:5 };
-  if (d>=61) return { range:'상위 51~65%',tier:'평균 이하',         level:4 };
-  if (d>=55) return { range:'상위 66~80%',tier:'재물운 약함',       level:3 };
-  if (d>=49) return { range:'상위 81~90%',tier:'재물운 매우 약함',  level:2 };
+  if (d>=90) return { range:'상위 1~5%',  tier:'극상위 재물 구조', level:9 };
+  if (d>=80) return { range:'상위 6~10%', tier:'재물운 매우 강함', level:8 };
+  if (d>=75) return { range:'상위 11~20%',tier:'재물운 강함',      level:7 };
+  if (d>=67) return { range:'상위 21~35%',tier:'평균 이상',         level:6 };
+  if (d>=63) return { range:'상위 36~50%',tier:'평균',              level:5 };
+  if (d>=57) return { range:'상위 51~65%',tier:'평균 이하',         level:4 };
+  if (d>=50) return { range:'상위 66~80%',tier:'재물운 약함',       level:3 };
+  if (d>=43) return { range:'상위 81~90%',tier:'재물운 매우 약함',  level:2 };
   return { range:'하위 10%', tier:'최하위', level:1 };
 }
 const WEALTH_TIER_COLORS = {9:'#C6930A',8:'#D4A017',7:'#5DA54E',6:'#6AA84F',5:'#6B7280',4:'#9CA3AF',3:'#D97706',2:'#DC2626',1:'#991B1B'};
@@ -3127,8 +3127,9 @@ function wCalcStage4(ip) {
   const items=[]; let s=0;
   // 대운 재성: 원국 재성 없으면 절반
   if(ip.daeunJaesung){
-    const v=ip.hasJaesung?12:6;
-    items.push({l:'대운 재성'+(ip.hasJaesung?'':' (원국 재성없음)'),v});s+=v;
+    const v=!ip.hasJaesung?6:ip.jaesungHapMukim?8:12;
+    const lbl='대운 재성'+(!ip.hasJaesung?' (원국 재성없음)':ip.jaesungHapMukim?' (합묶임 제한)':'');
+    items.push({l:lbl,v});s+=v;
   } else if(ip.daeunGwansal){
     const v=ip.siksinjeSal?-2:-8;
     items.push({l:'대운 관살'+(ip.siksinjeSal?' (식신제살)':''),v});s+=v;
